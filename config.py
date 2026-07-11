@@ -31,6 +31,8 @@ class Settings(BaseSettings):
 
     github_api_token: str = ""
 
+    cv_upload_max_bytes: int = 5 * 1024 * 1024
+
     session_length_options: list[int] = [15, 30, 40]
     session_length_min: int = 15
     session_length_max: int = 40

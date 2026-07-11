@@ -94,6 +94,12 @@ def create_app(settings: Settings | None = None) -> FastAPI:
 
     app.state.oauth_state_store = OAuthStateStore()
 
+    from ai.setup import create_ai_service
+
+    # Optional dependency per TDD Startup Sequence — an unreachable/
+    # unconfigured LLM provider must not block the app from booting.
+    app.state.ai_service = create_ai_service(settings)
+
     register_exception_handlers(app)
 
     app.add_middleware(CORSMiddleware, allow_origins=["*"], allow_credentials=True)
