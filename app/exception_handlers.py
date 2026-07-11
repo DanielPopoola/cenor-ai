@@ -75,7 +75,15 @@ def register_exception_handlers(app: FastAPI) -> None:
 
     @app.exception_handler(Exception)
     async def handle_unexpected_error(request: Request, exc: Exception) -> JSONResponse:
-        request_id = get_request_id()
+        # get_request_id() reads a contextvar that RequestIDMiddleware's
+        # `finally` block may already have reset by the time an
+        # exception this generic reaches us (it can propagate past the
+        # middleware's own cleanup, unlike a registered CernoError which
+        # FastAPI's routing layer catches before that cleanup runs).
+        # request.state.request_id was set directly on the request
+        # object, which isn't torn down the same way — use it as the
+        # reliable fallback.
+        request_id = get_request_id() or getattr(request.state, "request_id", "")
         _log.error(
             "unhandled_exception",
             path=request.url.path,

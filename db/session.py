@@ -4,6 +4,7 @@ from typing import Iterator
 from sqlalchemy import create_engine, event
 from sqlalchemy.engine import Engine
 from sqlalchemy.orm import Session, sessionmaker
+from sqlalchemy.pool import StaticPool
 
 from config import Settings
 
@@ -12,11 +13,21 @@ def _is_sqlite(database_url: str) -> bool:
     return database_url.startswith("sqlite")
 
 
+def _is_sqlite_memory(database_url: str) -> bool:
+    return database_url in ("sqlite:///:memory:", "sqlite://")
+
+
 def build_engine(settings: Settings) -> Engine:
     is_sqlite = _is_sqlite(settings.database_url)
+    is_memory = _is_sqlite_memory(settings.database_url)
 
     engine_kwargs: dict = {"pool_recycle": settings.db_pool_recycle_seconds}
-    if is_sqlite:
+    if is_memory:
+        engine_kwargs = {
+            "connect_args": {"check_same_thread": False},
+            "poolclass": StaticPool,
+        }
+    elif is_sqlite:
         engine_kwargs["connect_args"] = {"check_same_thread": False}
     else:
         engine_kwargs["pool_size"] = settings.db_pool_max_size

@@ -1,7 +1,6 @@
 from fastapi import APIRouter
 
-api_router = APIRouter()
+from auth.routes import router as auth_router
 
-# Populated once auth/routes.py exists (ticket 10):
-# from auth.routes import router as auth_router
-# api_router.include_router(auth_router, prefix="/auth", tags=["auth"])
+api_router = APIRouter()
+api_router.include_router(auth_router, prefix="/auth", tags=["auth"])
