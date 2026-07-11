@@ -7,8 +7,9 @@
     dependencies = [
         "alembic>=1.18.5",
         "fastapi[standard]>=0.139.0",
+        "openai>=2.45.0",
         "sqlalchemy>=2.0.51",
-    ]
+]
 
     [dependency-groups]
     dev = [
