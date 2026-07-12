@@ -17,6 +17,10 @@ from common.db import Base
 # their table definitions register against Base.metadata before
 # autogenerate runs. Uncommented as each domain's models.py lands:
 # from auth.models import UserORM  # noqa: F401
+from auth.models import UserORM  # noqa: F401
+from candidate_profile.models import CandidateProfileORM  # noqa: F401
+from job_posting.models import JobPostingORM # noqa: F401
+from session.models import SessionORM, SegmentORM, TurnORM # noqa: F401
 
 # this is the Alembic Config object, which provides
 # access to the values within the .ini file in use.

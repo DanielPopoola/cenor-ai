@@ -75,7 +75,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     @asynccontextmanager
     async def lifespan(app: FastAPI):
         _log.info("startup_sequence_begin", env=settings.env)
-        _run_migrations(settings)
+        # _run_migrations(settings)
         _log.info("startup_sequence_complete")
         yield
         _log.info("shutdown_begin")
