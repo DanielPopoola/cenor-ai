@@ -1,3 +1,5 @@
+from datetime import timezone
+
 from sqlalchemy import select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session as DBSession
@@ -14,7 +16,11 @@ def _to_domain(row: UserORM) -> User:
         email=row.email,
         name=row.name,
         google_sub=row.google_sub,
-        created_at=row.created_at,
+        created_at=(
+            row.created_at.replace(tzinfo=timezone.utc)
+            if row.created_at.tzinfo is None
+            else row.created_at
+        ),
     )
 
 

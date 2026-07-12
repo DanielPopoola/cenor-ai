@@ -1,3 +1,5 @@
+from datetime import timezone
+
 from sqlalchemy import select
 from sqlalchemy.orm import Session as DBSession
 
@@ -24,7 +26,11 @@ def _to_domain(row: CandidateProfileORM) -> CandidateProfile:
             if row.github_structured is not None
             else None
         ),
-        updated_at=row.updated_at,
+        updated_at=(
+            row.updated_at.replace(tzinfo=timezone.utc)
+            if row.updated_at.tzinfo is None
+            else row.updated_at
+        ),
     )
 
 

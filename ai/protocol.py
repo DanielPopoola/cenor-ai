@@ -1,10 +1,11 @@
-from typing import Protocol, TYPE_CHECKING
+from typing import TYPE_CHECKING, Protocol
 
 if TYPE_CHECKING:
+    from feedback.domain import FeedbackResult
+    from observation.domain import ObservationEntry
+
     from candidate_profile.domain import CVStructured, GitHubStructured
     from session.domain import InterviewerTurnResponse
-    from observation.domain import ObservationEntry
-    from feedback.domain import FeedbackResult
 
 
 class AIService(Protocol):
@@ -18,12 +19,18 @@ class AIService(Protocol):
 
     async def run_interviewer_turn(
         self,
-        transcript_so_far: list[dict],
         candidate_context: dict,
         job_context: dict,
         strictness_mode: str,
+        segment_area: str,
+        editor_available: bool,
+        current_checklist: dict,
+        last_candidate_turn_content: str | None,
+        last_code_snapshot: str | None,
     ) -> "InterviewerTurnResponse":
-        """Runs one Interviewer turn: next question + updated checklist."""
+        """
+        Runs one Interviewer turn: next question + updated checklist.
+        """
         ...
 
     async def run_observer(

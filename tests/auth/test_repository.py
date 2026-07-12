@@ -62,3 +62,17 @@ def test_user_with_no_name_is_allowed(db_session):
 
     found = repo.find_by_id(user.id)
     assert found.name is None
+
+
+def test_created_at_is_timezone_aware_after_db_round_trip(db_session):
+    """SQLite drops tzinfo on DateTime columns regardless of
+    timezone=True — see auth/repository.py's fix."""
+    from datetime import datetime, timezone
+
+    repo = UserRepository(db_session)
+    user = repo.create(email="tz-check@example.com", name="TZ", google_sub="tz-sub")
+
+    reread = repo.find_by_id(user.id)
+    assert reread.created_at.tzinfo is not None
+    elapsed = datetime.now(timezone.utc) - reread.created_at
+    assert elapsed.total_seconds() >= 0

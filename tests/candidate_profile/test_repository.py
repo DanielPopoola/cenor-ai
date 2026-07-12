@@ -8,7 +8,6 @@ from candidate_profile.repository import CandidateProfileRepository
 
 @pytest.fixture
 def user_id(db_session) -> str:
-    """A real users row — candidate_profiles.user_id is a hard FK."""
     row = UserORM(email="cp-repo@example.com", name="CP Repo", google_sub="cp-repo-sub")
     db_session.add(row)
     db_session.flush()
@@ -127,3 +126,15 @@ def test_second_profile_for_same_user_violates_unique_constraint(db_session, use
 
     with pytest.raises(IntegrityError):
         repo.create(user_id)
+
+
+def test_updated_at_is_timezone_aware_after_db_round_trip(db_session, user_id):
+    from datetime import datetime, timezone
+
+    repo = CandidateProfileRepository(db_session)
+    repo.create(user_id)
+
+    reread = repo.find_by_user_id(user_id)
+    assert reread.updated_at.tzinfo is not None
+    elapsed = datetime.now(timezone.utc) - reread.updated_at
+    assert elapsed.total_seconds() >= 0

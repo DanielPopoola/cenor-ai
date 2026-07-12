@@ -1,3 +1,5 @@
+from datetime import timezone
+
 from sqlalchemy import select
 from sqlalchemy.orm import Session as DBSession
 
@@ -14,7 +16,11 @@ def _to_domain(row: JobPostingORM) -> JobPosting:
         company=row.company,
         url=row.url,
         description_raw=row.description_raw,
-        created_at=row.created_at,
+        created_at=(
+            row.created_at.replace(tzinfo=timezone.utc)
+            if row.created_at.tzinfo is None
+            else row.created_at
+        ),
     )
 
 

@@ -96,3 +96,15 @@ def test_same_job_posting_can_exist_multiple_times_per_user(db_session, user_id)
 
     results = repo.list_for_user(user_id)
     assert len(results) == 2
+
+
+def test_created_at_is_timezone_aware_after_db_round_trip(db_session, user_id):
+    from datetime import datetime, timezone
+
+    repo = JobPostingRepository(db_session)
+    created = repo.create(user_id=user_id, title="Eng", description_raw="desc")
+
+    reread = repo.find_by_id(user_id, created.id)
+    assert reread.created_at.tzinfo is not None
+    elapsed = datetime.now(timezone.utc) - reread.created_at
+    assert elapsed.total_seconds() >= 0
