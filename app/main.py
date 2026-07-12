@@ -49,17 +49,6 @@ class PanicRecoveryMiddleware:
             await response(scope, receive, send)
 
 
-def _run_migrations(settings: Settings) -> None:
-    if settings.is_test:
-        return
-    from alembic import command
-    from alembic.config import Config as AlembicConfig
-
-    alembic_cfg = AlembicConfig("alembic.ini")
-    alembic_cfg.set_main_option("sqlalchemy.url", settings.database_url)
-    command.upgrade(alembic_cfg, "head")
-
-
 def create_app(settings: Settings | None = None) -> FastAPI:
     """
     Builds a fully-wired FastAPI app. Accepts an optional Settings
@@ -75,7 +64,6 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     @asynccontextmanager
     async def lifespan(app: FastAPI):
         _log.info("startup_sequence_begin", env=settings.env)
-        # _run_migrations(settings)
         _log.info("startup_sequence_complete")
         yield
         _log.info("shutdown_begin")
