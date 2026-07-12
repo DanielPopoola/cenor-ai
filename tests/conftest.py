@@ -22,7 +22,8 @@ def settings() -> Settings:
 def db(settings: Settings) -> Database:
     database = Database(settings)
     Base.metadata.create_all(database.engine)
-    return database
+    yield database
+    database.engine.dispose()
 
 
 @pytest.fixture
