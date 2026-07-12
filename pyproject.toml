@@ -17,8 +17,9 @@
     dev = [
         "pytest>=9.1.1",
         "pytest-asyncio>=1.4.0",
+        "pytest-cov>=7.1.0",
         "ruff>=0.15.21",
-    ]
+]
 
 [tool.ruff]
 exclude = [
@@ -31,3 +32,25 @@ exclude = [
 
 [tool.ty.src]
 exclude = ["tests"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+asyncio_mode = "auto"
+pythonpath= "."
+addopts = "--strict-markers --cov=. --cov-report=term-missing"
+
+
+[tool.coverage.run]
+source = ["."]
+omit = [
+    "tests/*", 
+    ".venv/*", 
+    "migrations/*",
+    "main.py"
+]
+
+
+[tool.coverage.report]
+precision = 2
+show_missing = true
+skip_covered = false
