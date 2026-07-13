@@ -1,8 +1,10 @@
 from datetime import timezone
 
 from sqlalchemy import select
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session as DBSession
 
+from common.errors import ConflictError
 from observation.domain import Observation, ObservationEntry
 from observation.errors import ObservationNotFoundError
 from observation.models import ObservationORM
@@ -27,17 +29,6 @@ def _to_domain(row: ObservationORM) -> Observation:
 
 
 class ObservationRepository:
-    """
-    Write-once: no update method exists. An Observation is produced a
-    single time by the background Observer task and never mutated
-    afterward (TDD: Observer runs once, post-session). Tenant
-    isolation is NOT enforced here directly — Observation has no
-    user_id column of its own; callers are expected to have already
-    verified session ownership via SessionRepository.find_session(
-    user_id, session_id) before reaching this repository, same pattern
-    as session/repository.py's Segment lookups.
-    """
-
     def __init__(self, db: DBSession):
         self._db = db
 
@@ -49,7 +40,20 @@ class ObservationRepository:
             observations_raw=json.dumps([e.model_dump() for e in entries]),
         )
         self._db.add(row)
-        self._db.flush()
+        try:
+            self._db.flush()
+        except IntegrityError as e:
+            self._db.rollback()
+            # Hit when two concurrent callers both find no Observation
+            # and both attempt to create one — e.g. two overlapping
+            # GET /observations self-healing retries, or the
+            # background task racing a self-healing retry. Translated
+            # into a domain-meaningful sentinel rather than leaking a
+            # raw SQLAlchemy exception; callers can catch this and
+            # re-fetch the (now-existing) row instead of crashing.
+            raise ConflictError(
+                f"An observation already exists for session_id={session_id}"
+            ) from e
         return _to_domain(row)
 
     def find_by_session_id(self, session_id: str) -> Observation:

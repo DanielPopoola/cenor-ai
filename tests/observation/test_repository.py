@@ -93,17 +93,22 @@ def test_empty_entries_list_is_valid_and_round_trips(db_session, session_id):
     assert found.entries == []
 
 
-def test_second_observation_for_same_session_violates_unique_constraint(
+def test_second_observation_for_same_session_raises_conflict_error(
     db_session, session_id
 ):
     """unique=True on session_id enforces the 1:1 relationship at the
-    DB level — mirrors CandidateProfileORM.user_id's constraint."""
-    from sqlalchemy.exc import IntegrityError
+    DB level (mirrors CandidateProfileORM.user_id's constraint), but
+    the raw IntegrityError is translated to a domain-meaningful
+    ConflictError — same pattern as auth/repository.py's duplicate
+    email/google_sub handling — so callers (e.g. the self-healing
+    retry in observation/routes.py) can catch it as a normal domain
+    error rather than a leaked SQLAlchemy exception."""
+    from common.errors import ConflictError
 
     repo = ObservationRepository(db_session)
     repo.create(session_id, _entries())
 
-    with pytest.raises(IntegrityError):
+    with pytest.raises(ConflictError):
         repo.create(session_id, _entries())
 
 
