@@ -1,10 +1,15 @@
-from fastapi import APIRouter, Depends, BackgroundTasks
+from typing import Iterator
+
+from fastapi import APIRouter, BackgroundTasks, Depends, Request
 from sqlalchemy.orm import Session as DBSession
 
 from auth.domain import User
 from auth.routes import get_current_user
+from candidate_profile.repository import CandidateProfileRepository
 from common.schemas import APIResponse
-from observation.service import ObservationService
+from config import Settings
+from job_posting.repository import JobPostingRepository
+from session.repository import SessionRepository
 from session.schemas import (
     CreateSessionRequest,
     SessionResponse,
@@ -12,10 +17,31 @@ from session.schemas import (
     TurnResultResponse,
 )
 from session.service import SessionService
-from session.dependencies import get_db, get_session_service, get_observation_service
 from session.tasks import run_observation_task
 
 router = APIRouter()
+
+
+def get_db(request: Request) -> Iterator[DBSession]:
+    yield from request.app.state.database.get_db_session()
+
+
+def get_settings_dep(request: Request) -> Settings:
+    return request.app.state.settings
+
+
+def get_session_service(
+    request: Request,
+    settings: Settings = Depends(get_settings_dep),
+    db: DBSession = Depends(get_db),
+) -> SessionService:
+    return SessionService(
+        settings=settings,
+        repository=SessionRepository(db),
+        candidate_profile_repository=CandidateProfileRepository(db),
+        job_posting_repository=JobPostingRepository(db),
+        ai_service=request.app.state.ai_service,
+    )
 
 
 @router.post("")
@@ -74,13 +100,24 @@ async def next_question(
 @router.post("/{session_id}/end")
 def end_session(
     session_id: str,
+    request: Request,
+    background_tasks: BackgroundTasks,
     db: DBSession = Depends(get_db),
     user: User = Depends(get_current_user),
     service: SessionService = Depends(get_session_service),
 ) -> APIResponse[SessionResponse]:
-    session = service.end_session(user.id, session_id)
+    result = service.end_session(user.id, session_id)
     db.commit()
-    return APIResponse.ok(SessionResponse.from_domain(session))
+
+    if result.just_completed:
+        background_tasks.add_task(
+            run_observation_task,
+            session_id,
+            request.app.state.database,
+            request.app.state.ai_service,
+        )
+
+    return APIResponse.ok(SessionResponse.from_domain(result.session))
 
 
 @router.get("")
@@ -95,11 +132,8 @@ def list_sessions(
 @router.get("/{session_id}")
 def get_session(
     session_id: str,
-    background_tasks: BackgroundTasks,
     user: User = Depends(get_current_user),
     service: SessionService = Depends(get_session_service),
-    observation_service: ObservationService = Depends(get_observation_service),
 ) -> APIResponse[SessionResponse]:
     session = service.get_session(user.id, session_id)
-    background_tasks.add_task(run_observation_task, session_id, observation_service)
     return APIResponse.ok(SessionResponse.from_domain(session))
