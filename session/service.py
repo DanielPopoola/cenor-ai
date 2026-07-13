@@ -29,6 +29,12 @@ class TurnResult:
     next_question: str | None
 
 
+@dataclass(frozen=True)
+class EndSessionResult:
+    session: Session
+    just_completed: bool
+
+
 class SessionService:
     def __init__(
         self,
@@ -356,13 +362,16 @@ class SessionService:
     def list_sessions(self, user_id: str) -> list[Session]:
         return self._repository.list_sessions(user_id)
 
-    def end_session(self, user_id: str, session_id: str) -> Session:
+    def end_session(self, user_id: str, session_id: str) -> EndSessionResult:
         session = self._repository.find_session(user_id, session_id)
         if session.status != "in_progress":
-            return session
-        return self._repository.update_session_status(
+            # Already completed/abandoned — a no-op. just_completed=False
+            # tells the route not to re-trigger the Observer chain.
+            return EndSessionResult(session=session, just_completed=False)
+        completed = self._repository.update_session_status(
             user_id=user_id,
             session_id=session_id,
             status="completed",
             ended_at=datetime.now(timezone.utc),
         )
+        return EndSessionResult(session=completed, just_completed=True)

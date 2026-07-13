@@ -21,6 +21,7 @@ from auth.models import UserORM  # noqa: F401
 from candidate_profile.models import CandidateProfileORM  # noqa: F401
 from job_posting.models import JobPostingORM # noqa: F401
 from session.models import SessionORM, SegmentORM, TurnORM # noqa: F401
+from observation.models import ObservationORM  # noqa: F401
 
 # this is the Alembic Config object, which provides
 # access to the values within the .ini file in use.

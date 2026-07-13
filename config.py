@@ -29,6 +29,8 @@ class Settings(BaseSettings):
     llm_model: str = "gpt-4o-mini"
     llm_request_timeout_seconds: int = 30
 
+    observer_prompt_variant: Literal["zero_shot", "few_shot"] = "zero_shot"
+
     github_api_token: str = ""
 
     cv_upload_max_bytes: int = 5 * 1024 * 1024

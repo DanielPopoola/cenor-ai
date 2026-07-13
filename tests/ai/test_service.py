@@ -108,3 +108,132 @@ async def test_run_interviewer_turn_passes_system_and_user_messages(settings):
     assert messages[1]["role"] == "user"
     assert "Ada" in messages[1]["content"]
     assert "lenient" in messages[1]["content"]
+
+
+# --- run_observer -----------------------------------------------------
+
+
+def _mock_observer_completion(entries):
+    from ai.prompts.observer import ObserverResponse
+
+    parsed = ObserverResponse(entries=entries) if entries is not None else None
+    completion = MagicMock()
+    message = MagicMock()
+    message.parsed = parsed
+    completion.choices = [MagicMock(message=message)]
+    return completion
+
+
+async def test_run_observer_returns_unwrapped_entries_list(settings):
+    """The OpenAI call boundary needs a wrapper object for schema-
+    constrained output (ObserverResponse), but callers of run_observer
+    should get back a bare list[ObservationEntry] — the wrapper is an
+    implementation detail, never leaked outward."""
+    from observation.domain import ObservationEntry
+
+    service = OpenAICompatibleService(settings)
+    expected_entries = [
+        ObservationEntry(
+            id=1, category="clarifies_ambiguity",
+            fact="The candidate asked about input size.", turn_ref=[2],
+        )
+    ]
+
+    with patch.object(
+        service._client.chat.completions,
+        "parse",
+        new=AsyncMock(return_value=_mock_observer_completion(expected_entries)),
+    ):
+        result = await service.run_observer(
+            full_transcript=[{"turn_number": 1, "speaker": "interviewer", "content": "Q"}],
+            lens_type="coding",
+        )
+
+    assert result == expected_entries
+
+
+async def test_run_observer_raises_when_response_fails_to_parse(settings):
+    service = OpenAICompatibleService(settings)
+
+    with patch.object(
+        service._client.chat.completions,
+        "parse",
+        new=AsyncMock(return_value=_mock_observer_completion(None)),
+    ):
+        with pytest.raises(ValueError):
+            await service.run_observer(full_transcript=[], lens_type="coding")
+
+
+async def test_run_observer_requests_schema_constrained_output(settings):
+    from ai.prompts.observer import ObserverResponse
+
+    service = OpenAICompatibleService(settings)
+
+    with patch.object(
+        service._client.chat.completions,
+        "parse",
+        new=AsyncMock(return_value=_mock_observer_completion([])),
+    ) as mock_parse:
+        await service.run_observer(full_transcript=[], lens_type="coding")
+
+    _, kwargs = mock_parse.call_args
+    assert kwargs["response_format"] is ObserverResponse
+
+
+async def test_run_observer_passes_lens_type_into_system_prompt(settings):
+    service = OpenAICompatibleService(settings)
+
+    with patch.object(
+        service._client.chat.completions,
+        "parse",
+        new=AsyncMock(return_value=_mock_observer_completion([])),
+    ) as mock_parse:
+        await service.run_observer(full_transcript=[], lens_type="conversational")
+
+    _, kwargs = mock_parse.call_args
+    system_message = kwargs["messages"][0]["content"]
+    assert "does not apply" in system_message  # conversational-lens exclusion note
+
+
+async def test_run_observer_passes_transcript_in_user_message(settings):
+    service = OpenAICompatibleService(settings)
+    transcript = [{"turn_number": 1, "speaker": "candidate", "content": "hello", "code_snapshot": None, "area": "system_design"}]
+
+    with patch.object(
+        service._client.chat.completions,
+        "parse",
+        new=AsyncMock(return_value=_mock_observer_completion([])),
+    ) as mock_parse:
+        await service.run_observer(full_transcript=transcript, lens_type="conversational")
+
+    _, kwargs = mock_parse.call_args
+    user_message = kwargs["messages"][1]["content"]
+    assert "hello" in user_message
+
+
+async def test_run_observer_defaults_to_zero_shot_variant(settings):
+    service = OpenAICompatibleService(settings)
+
+    with patch.object(
+        service._client.chat.completions,
+        "parse",
+        new=AsyncMock(return_value=_mock_observer_completion([])),
+    ) as mock_parse:
+        await service.run_observer(full_transcript=[], lens_type="coding")
+
+    system_message = mock_parse.call_args.kwargs["messages"][0]["content"]
+    assert "EXAMPLES (illustrative" not in system_message
+
+
+async def test_run_observer_uses_few_shot_variant_when_requested(settings):
+    service = OpenAICompatibleService(settings)
+
+    with patch.object(
+        service._client.chat.completions,
+        "parse",
+        new=AsyncMock(return_value=_mock_observer_completion([])),
+    ) as mock_parse:
+        await service.run_observer(full_transcript=[], lens_type="coding", variant="few_shot")
+
+    system_message = mock_parse.call_args.kwargs["messages"][0]["content"]
+    assert "EXAMPLES (illustrative" in system_message

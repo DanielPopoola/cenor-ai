@@ -1,6 +1,6 @@
 from typing import Iterator
 
-from fastapi import APIRouter, Depends, Request
+from fastapi import APIRouter, BackgroundTasks, Depends, Request
 from sqlalchemy.orm import Session as DBSession
 
 from auth.domain import User
@@ -17,6 +17,7 @@ from session.schemas import (
     TurnResultResponse,
 )
 from session.service import SessionService
+from session.tasks import run_observation_task
 
 router = APIRouter()
 
@@ -99,13 +100,25 @@ async def next_question(
 @router.post("/{session_id}/end")
 def end_session(
     session_id: str,
+    request: Request,
+    background_tasks: BackgroundTasks,
     db: DBSession = Depends(get_db),
     user: User = Depends(get_current_user),
     service: SessionService = Depends(get_session_service),
 ) -> APIResponse[SessionResponse]:
-    session = service.end_session(user.id, session_id)
+    result = service.end_session(user.id, session_id)
     db.commit()
-    return APIResponse.ok(SessionResponse.from_domain(session))
+
+    if result.just_completed:
+        background_tasks.add_task(
+            run_observation_task,
+            session_id,
+            request.app.state.database,
+            request.app.state.ai_service,
+            request.app.state.settings,
+        )
+
+    return APIResponse.ok(SessionResponse.from_domain(result.session))
 
 
 @router.get("")

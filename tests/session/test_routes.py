@@ -260,6 +260,38 @@ def test_end_session_marks_completed(client, app):
     assert r.json()["data"]["status"] == "completed"
 
 
+def test_end_session_triggers_observer_background_task_exactly_once(client, app):
+    """Regression test: ending a session must schedule the Observer
+    background task exactly once, only on the call that actually
+    transitions the session to completed. A naive implementation that
+    always schedules the task on every /end call — including repeat
+    calls against an already-completed session — would re-trigger the
+    Observer and hit Observation's unique-per-session constraint via
+    an uncaught IntegrityError inside the background task."""
+    _login(client)
+    job_id = _setup_complete_profile_and_job(client, app)
+    app.state.ai_service = FakeAIService([_in_progress("opening")])
+    create_resp = client.post("/api/v1/sessions", json={"job_posting_id": job_id})
+    session_id = create_resp.json()["data"]["session"]["id"]
+
+    with patch("session.routes.run_observation_task") as mock_task:
+        first = client.post(f"/api/v1/sessions/{session_id}/end")
+        assert first.status_code == 200
+        assert first.json()["data"]["status"] == "completed"
+
+        second = client.post(f"/api/v1/sessions/{session_id}/end")
+        assert second.status_code == 200
+        assert second.json()["data"]["status"] == "completed"
+
+    # TestClient drives the ASGI app in-process and executes
+    # BackgroundTasks before returning control here, so the patched
+    # run_observation_task is actually invoked — exactly once, from
+    # the first /end call only.
+    assert mock_task.call_count == 1
+    called_session_id = mock_task.call_args[0][0]
+    assert called_session_id == session_id
+
+
 def test_get_session_returns_owned_session(client, app):
     _login(client)
     job_id = _setup_complete_profile_and_job(client, app)
