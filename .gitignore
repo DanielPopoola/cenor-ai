@@ -221,3 +221,6 @@ __marimo__/
 .streamlit/secrets.toml
 
 *.db
+
+*.dokugen-backup.md
+*.dokugen-cache.json
