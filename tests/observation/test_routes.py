@@ -121,3 +121,141 @@ def test_get_observations_empty_entries_list_still_returns_200(client, db_sessio
     r = client.get(f"/api/v1/sessions/{session_id}/observations")
     assert r.status_code == 200
     assert r.json()["data"]["entries"] == []
+
+
+# --- self-healing: completed session, missing Observation --------------
+
+
+class _FakeObserverAIService:
+    def __init__(self, entries=None, raises=None):
+        self._entries = entries or []
+        self._raises = raises
+        self.call_count = 0
+
+    async def run_observer(self, full_transcript, lens_type, variant="zero_shot"):
+        self.call_count += 1
+        if self._raises is not None:
+            raise self._raises
+        return self._entries
+
+    async def structure_cv(self, *a, **k):
+        raise AssertionError("not exercised")
+
+    async def structure_github(self, *a, **k):
+        raise AssertionError("not exercised")
+
+    async def run_interviewer_turn(self, *a, **k):
+        raise AssertionError("not exercised")
+
+    async def run_feedback_synthesis(self, *a, **k):
+        raise AssertionError("not exercised")
+
+
+def _seed_completed_session_with_turns(db_session, user_email: str) -> tuple[str, str]:
+    """Like _seed_session, but marks the session completed and adds a
+    segment + turn so build_flat_transcript has something to work
+    with — mirrors what a real ended session looks like."""
+    from session.models import SegmentORM, TurnORM
+    from session.domain import SegmentChecklist
+    from datetime import datetime, timezone
+
+    user = db_session.query(UserORM).filter_by(email=user_email).first()
+    job = JobPostingORM(user_id=user.id, title="Eng", description_raw="desc")
+    db_session.add(job)
+    db_session.flush()
+
+    session = SessionORM(
+        user_id=user.id, job_posting_id=job.id, duration_limit_minutes=30,
+        status="completed", ended_at=datetime.now(timezone.utc),
+    )
+    db_session.add(session)
+    db_session.flush()
+
+    segment = SegmentORM(
+        session_id=session.id, segment_order=0, area="programming_algorithms",
+        editor_available=True, duration_limit_minutes=10,
+        checklist=SegmentChecklist().model_dump_json(), status="completed",
+    )
+    db_session.add(segment)
+    db_session.flush()
+
+    turn = TurnORM(
+        segment_id=segment.id, turn_number=1, speaker="interviewer", content="Q1",
+    )
+    db_session.add(turn)
+    db_session.flush()
+    db_session.commit()
+    return user.id, session.id
+
+
+def test_get_observations_self_heals_when_session_completed_but_observation_missing(
+    client, app, db_session
+):
+    """The core fix: a completed session with no Observation (background
+    task failed or never ran) must run the Observer inline rather than
+    404-ing forever."""
+    _login(client)
+    _, session_id = _seed_completed_session_with_turns(db_session, "obs-routes@example.com")
+
+    fake_ai = _FakeObserverAIService(entries=[])
+    app.state.ai_service = fake_ai
+
+    r = client.get(f"/api/v1/sessions/{session_id}/observations")
+
+    assert r.status_code == 200
+    assert r.json()["data"]["session_id"] == session_id
+    assert fake_ai.call_count == 1
+
+
+def test_get_observations_self_healing_persists_the_result(client, app, db_session):
+    """The inline retry must actually persist an Observation row, not
+    just return an ephemeral result — a subsequent GET should find it
+    without triggering another Observer call."""
+    _login(client)
+    _, session_id = _seed_completed_session_with_turns(db_session, "obs-routes@example.com")
+
+    fake_ai = _FakeObserverAIService(entries=[])
+    app.state.ai_service = fake_ai
+
+    first = client.get(f"/api/v1/sessions/{session_id}/observations")
+    assert first.status_code == 200
+    assert fake_ai.call_count == 1
+
+    second = client.get(f"/api/v1/sessions/{session_id}/observations")
+    assert second.status_code == 200
+    assert fake_ai.call_count == 1  # not called again — found via find_by_session_id
+
+
+def test_get_observations_in_progress_session_still_returns_404_without_self_healing(
+    client, app, db_session
+):
+    """The self-healing path must NOT fire for a session that's
+    genuinely still in progress — that's the expected, valid 'too
+    early' case, not a failure to recover from."""
+    _login(client)
+    _, session_id = _seed_session(db_session, "obs-routes@example.com")
+
+    fake_ai = _FakeObserverAIService(entries=[])
+    app.state.ai_service = fake_ai
+
+    r = client.get(f"/api/v1/sessions/{session_id}/observations")
+
+    assert r.status_code == 404
+    assert fake_ai.call_count == 0
+
+
+def test_get_observations_propagates_error_when_self_healing_retry_fails(
+    client, app, db_session
+):
+    """If the inline retry itself fails, that's a real, current
+    failure the client explicitly asked about — it must surface as a
+    loud error, not another silent 404."""
+    _login(client)
+    _, session_id = _seed_completed_session_with_turns(db_session, "obs-routes@example.com")
+
+    fake_ai = _FakeObserverAIService(raises=RuntimeError("LLM provider down"))
+    app.state.ai_service = fake_ai
+
+    r = client.get(f"/api/v1/sessions/{session_id}/observations")
+
+    assert r.status_code == 500
