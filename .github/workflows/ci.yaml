@@ -73,7 +73,7 @@ jobs:
         run: pip install uv
 
       - name: Run test and ouput to junit.xml
-        run: pytest --cov --junitxml=junit.xml -o junit_family=legacy
+        run: uv run pytest --cov --junitxml=junit.xml -o junit_family=legacy
 
       - name: Upload coverage to Codecov
         uses: codecov/codecov-action@v5
