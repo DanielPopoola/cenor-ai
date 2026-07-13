@@ -1,8 +1,15 @@
 from openai import AsyncOpenAI
 
 from ai.prompts.interviewer import SYSTEM_PROMPT, build_user_message
+from ai.prompts.observer import (
+    ObserverResponse,
+    ObserverVariant,
+    build_system_prompt as build_observer_system_prompt,
+    build_user_message as build_observer_user_message,
+)
 from common.retry import retry_transient
 from config import Settings
+from observation.domain import ObservationEntry
 from session.domain import InterviewerTurnResponse
 
 
@@ -60,8 +67,29 @@ class OpenAICompatibleService:
         return parsed
 
     @retry_transient(max_attempts=2, exceptions=(TimeoutError, ConnectionError))
-    async def run_observer(self, full_transcript: list[dict], lens_type: str):
-        raise NotImplementedError("Observer prompt lands in Epic 3")
+    async def run_observer(
+        self,
+        full_transcript: list[dict],
+        lens_type: str,
+        variant: ObserverVariant = "zero_shot",
+    ) -> list[ObservationEntry]:
+        system_prompt = build_observer_system_prompt(
+            lens_type=lens_type, variant=variant
+        )
+        user_message = build_observer_user_message(full_transcript)
+
+        completion = await self._client.chat.completions.parse(
+            model=self._model,
+            messages=[
+                {"role": "system", "content": system_prompt},
+                {"role": "user", "content": user_message},
+            ],
+            response_format=ObserverResponse,
+        )
+        parsed = completion.choices[0].message.parsed
+        if parsed is None:
+            raise ValueError("Observer response did not match the expected schema")
+        return parsed.entries
 
     @retry_transient(max_attempts=2, exceptions=(TimeoutError, ConnectionError))
     async def run_feedback_synthesis(

@@ -115,6 +115,7 @@ def end_session(
             session_id,
             request.app.state.database,
             request.app.state.ai_service,
+            request.app.state.settings,
         )
 
     return APIResponse.ok(SessionResponse.from_domain(result.session))

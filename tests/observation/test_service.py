@@ -48,10 +48,12 @@ class FakeAIService:
         self._observer_result = observer_result or []
         self.received_transcript: list[dict] | None = None
         self.received_lens_type: str | None = None
+        self.received_variant: str | None = None
 
-    async def run_observer(self, full_transcript, lens_type):
+    async def run_observer(self, full_transcript, lens_type, variant="zero_shot"):
         self.received_transcript = full_transcript
         self.received_lens_type = lens_type
+        self.received_variant = variant
         return self._observer_result
 
     async def structure_cv(self, *a, **k):
@@ -177,3 +179,30 @@ async def test_run_observation_raises_when_ai_service_unavailable():
 
     with pytest.raises(ValidationError):
         await service.run_observation("session-1")
+
+
+async def test_run_observation_defaults_to_zero_shot_variant():
+    seg = _segment("system_design", editor_available=False)
+    session_repo = FakeSessionRepository([seg], {seg.id: [_turn(seg.id, 1, "interviewer", "Q")]})
+    ai = FakeAIService()
+
+    service = ObservationService(session_repo, FakeObservationRepository(), ai)
+    await service.run_observation("session-1")
+
+    assert ai.received_variant == "zero_shot"
+
+
+async def test_run_observation_passes_configured_variant_through_to_ai_call():
+    """Confirms the constructor-level observer_variant setting (config-
+    driven per Settings.observer_prompt_variant) actually reaches the
+    AI call — not just stored and ignored."""
+    seg = _segment("system_design", editor_available=False)
+    session_repo = FakeSessionRepository([seg], {seg.id: [_turn(seg.id, 1, "interviewer", "Q")]})
+    ai = FakeAIService()
+
+    service = ObservationService(
+        session_repo, FakeObservationRepository(), ai, observer_variant="few_shot"
+    )
+    await service.run_observation("session-1")
+
+    assert ai.received_variant == "few_shot"

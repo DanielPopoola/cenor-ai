@@ -34,7 +34,7 @@ class AIService(Protocol):
         ...
 
     async def run_observer(
-        self, full_transcript: list[dict], lens_type: str
+        self, full_transcript: list[dict], lens_type: str, variant: str = "zero_shot"
     ) -> list["ObservationEntry"]:
         """Single-pass observation over a completed session transcript."""
         ...

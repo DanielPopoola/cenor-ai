@@ -1,4 +1,5 @@
 from ai.protocol import AIService
+from config import Settings
 from db.session import Database
 from observation.repository import ObservationRepository
 from observation.service import ObservationService
@@ -6,7 +7,10 @@ from session.repository import SessionRepository
 
 
 async def run_observation_task(
-    session_id: str, database: Database, ai_service: AIService | None
+    session_id: str,
+    database: Database,
+    ai_service: AIService | None,
+    settings: Settings,
 ) -> None:
     """
     Runs after the HTTP response for POST /sessions/{id}/end has
@@ -22,5 +26,6 @@ async def run_observation_task(
             session_repository=SessionRepository(db),
             observation_repository=ObservationRepository(db),
             ai_service=ai_service,
+            observer_variant=settings.observer_prompt_variant,
         )
         await service.run_observation(session_id)
