@@ -86,12 +86,6 @@ async def next_question(
     user: User = Depends(get_current_user),
     service: SessionService = Depends(get_session_service),
 ) -> APIResponse[TurnResultResponse]:
-    """
-    Called after a "segment_transitioned" outcome to fetch the new
-    segment's opening question — kept as its own call so a segment
-    boundary never triggers a second LLM call within the same request
-    (see session/service.py's TurnResult docstring).
-    """
     result = await service.start_next_question(user_id=user.id, session_id=session_id)
     db.commit()
     return APIResponse.ok(TurnResultResponse.from_domain(result))
@@ -113,6 +107,7 @@ def end_session(
         background_tasks.add_task(
             run_observation_task,
             session_id,
+            user.id,
             request.app.state.database,
             request.app.state.ai_service,
             request.app.state.settings,
