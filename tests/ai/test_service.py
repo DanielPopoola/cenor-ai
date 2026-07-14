@@ -237,3 +237,101 @@ async def test_run_observer_uses_few_shot_variant_when_requested(settings):
 
     system_message = mock_parse.call_args.kwargs["messages"][0]["content"]
     assert "EXAMPLES (illustrative" in system_message
+
+
+# --- run_feedback_synthesis ---------------------------------------------
+
+
+def _mock_feedback_completion(result):
+    completion = MagicMock()
+    message = MagicMock()
+    message.parsed = result
+    completion.choices = [MagicMock(message=message)]
+    return completion
+
+
+async def test_run_feedback_synthesis_returns_parsed_result(settings):
+    from feedback.domain import FeedbackResult, TraitSummary
+    from observation.domain import ObservationEntry
+
+    service = OpenAICompatibleService(settings)
+    expected = FeedbackResult(
+        trait_summary=[
+            TraitSummary(trait="problem_solving", summary="did X", source_observations=[1])
+        ],
+        focus_points=[],
+    )
+
+    with patch.object(
+        service._client.chat.completions,
+        "parse",
+        new=AsyncMock(return_value=_mock_feedback_completion(expected)),
+    ):
+        result = await service.run_feedback_synthesis(
+            observations=[
+                ObservationEntry(id=1, category="clarifies_ambiguity", fact="asked a question", turn_ref=[1])
+            ],
+            lens_type="coding",
+            trait_mapping={"problem_solving": ["reasons_through_examples"]},
+            candidate_profile_summary="",
+        )
+
+    assert result == expected
+
+
+async def test_run_feedback_synthesis_raises_when_response_fails_to_parse(settings):
+    service = OpenAICompatibleService(settings)
+
+    with patch.object(
+        service._client.chat.completions,
+        "parse",
+        new=AsyncMock(return_value=_mock_feedback_completion(None)),
+    ):
+        with pytest.raises(ValueError):
+            await service.run_feedback_synthesis(
+                observations=[], lens_type="coding", trait_mapping={}, candidate_profile_summary="",
+            )
+
+
+async def test_run_feedback_synthesis_requests_schema_constrained_output(settings):
+    from feedback.domain import FeedbackResult
+
+    service = OpenAICompatibleService(settings)
+
+    with patch.object(
+        service._client.chat.completions,
+        "parse",
+        new=AsyncMock(return_value=_mock_feedback_completion(FeedbackResult(trait_summary=[], focus_points=[]))),
+    ) as mock_parse:
+        await service.run_feedback_synthesis(
+            observations=[], lens_type="coding", trait_mapping={}, candidate_profile_summary="",
+        )
+
+    _, kwargs = mock_parse.call_args
+    assert kwargs["response_format"] is FeedbackResult
+
+
+async def test_run_feedback_synthesis_passes_trait_mapping_and_summary_in_user_message(settings):
+    from feedback.domain import FeedbackResult
+
+    service = OpenAICompatibleService(settings)
+
+    with patch.object(
+        service._client.chat.completions,
+        "parse",
+        new=AsyncMock(return_value=_mock_feedback_completion(FeedbackResult(trait_summary=[], focus_points=[]))),
+    ) as mock_parse:
+        await service.run_feedback_synthesis(
+            observations=[],
+            lens_type="conversational",
+            trait_mapping={"communication": ["communicates_thinking"]},
+            candidate_profile_summary="Skills: Python",
+        )
+
+    _, kwargs = mock_parse.call_args
+    messages = kwargs["messages"]
+    assert messages[0]["role"] == "system"
+    assert "NVC" in messages[0]["content"]
+    assert messages[1]["role"] == "user"
+    assert "communication" in messages[1]["content"]
+    assert "Python" in messages[1]["content"]

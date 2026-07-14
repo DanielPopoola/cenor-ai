@@ -5,6 +5,7 @@ from candidate_profile.routes import router as candidate_profile_router
 from job_posting.routes import router as job_posting_router
 from session.routes import router as session_router
 from observation.routes import router as observation_router
+from feedback.routes import session_feedback_router, feedback_history_router
 
 api_router = APIRouter()
 api_router.include_router(auth_router, prefix="/auth", tags=["auth"])
@@ -14,3 +15,9 @@ api_router.include_router(
 api_router.include_router(job_posting_router, prefix="/jobs", tags=["job_posting"])
 api_router.include_router(session_router, prefix="/sessions", tags=["session"])
 api_router.include_router(observation_router, prefix="/sessions", tags=["observation"])
+api_router.include_router(
+    session_feedback_router, prefix="/sessions", tags=["feedback"]
+)
+api_router.include_router(
+    feedback_history_router, prefix="/feedback", tags=["feedback"]
+)
