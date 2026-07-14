@@ -1,5 +1,9 @@
 from openai import AsyncOpenAI
 
+from ai.prompts.feedback_synthesizer import SYSTEM_PROMPT as FEEDBACK_SYSTEM_PROMPT
+from ai.prompts.feedback_synthesizer import (
+    build_user_message as build_feedback_user_message,
+)
 from ai.prompts.interviewer import SYSTEM_PROMPT, build_user_message
 from ai.prompts.observer import (
     ObserverResponse,
@@ -9,6 +13,7 @@ from ai.prompts.observer import (
 )
 from common.retry import retry_transient
 from config import Settings
+from feedback.domain import FeedbackResult
 from observation.domain import ObservationEntry
 from session.domain import InterviewerTurnResponse
 
@@ -94,9 +99,28 @@ class OpenAICompatibleService:
     @retry_transient(max_attempts=2, exceptions=(TimeoutError, ConnectionError))
     async def run_feedback_synthesis(
         self,
-        observations: list,
+        observations: list[ObservationEntry],
         lens_type: str,
         trait_mapping: dict,
         candidate_profile_summary: str,
-    ):
-        raise NotImplementedError("Feedback Synthesizer prompt lands in Epic 3")
+    ) -> FeedbackResult:
+        user_message = build_feedback_user_message(
+            observations=observations,
+            trait_mapping=trait_mapping,
+            candidate_profile_summary=candidate_profile_summary,
+        )
+
+        completion = await self._client.chat.completions.parse(
+            model=self._model,
+            messages=[
+                {"role": "system", "content": FEEDBACK_SYSTEM_PROMPT},
+                {"role": "user", "content": user_message},
+            ],
+            response_format=FeedbackResult,
+        )
+        parsed = completion.choices[0].message.parsed
+        if parsed is None:
+            raise ValueError(
+                "Feedback Synthesizer response did not match the expected schema"
+            )
+        return parsed
