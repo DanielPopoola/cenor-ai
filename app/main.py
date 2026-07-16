@@ -1,6 +1,7 @@
 from contextlib import asynccontextmanager
 
 from fastapi import FastAPI
+from fastapi.staticfiles import StaticFiles
 from starlette.middleware.cors import CORSMiddleware
 from starlette.responses import JSONResponse
 from starlette.types import ASGIApp, Receive, Scope, Send
@@ -98,6 +99,11 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     from api.v1.router import api_router
 
     app.include_router(api_router, prefix="/api/v1")
+
+    from web.routes import router as web_router
+
+    app.include_router(web_router)
+    app.mount("/static", StaticFiles(directory="web/static"), name="static")
 
     return app
 
