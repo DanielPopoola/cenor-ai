@@ -1,6 +1,6 @@
 from fastapi import FastAPI, Request
 from fastapi.exceptions import RequestValidationError
-from fastapi.responses import JSONResponse
+from fastapi.responses import HTMLResponse, JSONResponse
 
 from common.errors import (
     CernoError,
@@ -33,9 +33,24 @@ def _status_for(exc: CernoError) -> int:
     return _DEFAULT_STATUS
 
 
+def _is_htmx(request: Request) -> bool:
+    return request.headers.get("HX-Request") == "true"
+
+
+def _render_alert(
+    request: Request, message: str, request_id: str, status: int
+) -> HTMLResponse:
+    from web.templating import templates
+
+    html = templates.get_template("_alert.html").render(
+        {"request": request, "message": message, "request_id": request_id}
+    )
+    return HTMLResponse(content=html, status_code=status)
+
+
 def register_exception_handlers(app: FastAPI) -> None:
     @app.exception_handler(CernoError)
-    async def handle_domain_error(request: Request, exc: CernoError) -> JSONResponse:
+    async def handle_domain_error(request: Request, exc: CernoError):
         status = _status_for(exc)
         request_id = get_request_id()
         _log.warning(
@@ -45,6 +60,8 @@ def register_exception_handlers(app: FastAPI) -> None:
             message=exc.message,
             cause=str(exc.__cause__) if exc.__cause__ else None,
         )
+        if _is_htmx(request):
+            return _render_alert(request, exc.message, request_id, status)
         envelope = APIResponse.fail(
             ErrorDetail(
                 code=type(exc).__name__,
@@ -57,32 +74,27 @@ def register_exception_handlers(app: FastAPI) -> None:
     @app.exception_handler(RequestValidationError)
     async def handle_request_validation_error(
         request: Request, exc: RequestValidationError
-    ) -> JSONResponse:
+    ):
         request_id = get_request_id()
         _log.warning(
             "request_validation_error",
             path=request.url.path,
             errors=exc.errors(),
         )
+        message = "Request did not match the expected shape."
+        if _is_htmx(request):
+            return _render_alert(request, message, request_id, 422)
         envelope = APIResponse.fail(
             ErrorDetail(
                 code="RequestValidationError",
-                message="Request did not match the expected shape.",
+                message=message,
                 request_id=request_id,
             )
         )
         return JSONResponse(status_code=422, content=envelope.model_dump())
 
     @app.exception_handler(Exception)
-    async def handle_unexpected_error(request: Request, exc: Exception) -> JSONResponse:
-        # get_request_id() reads a contextvar that RequestIDMiddleware's
-        # `finally` block may already have reset by the time an
-        # exception this generic reaches us (it can propagate past the
-        # middleware's own cleanup, unlike a registered CernoError which
-        # FastAPI's routing layer catches before that cleanup runs).
-        # request.state.request_id was set directly on the request
-        # object, which isn't torn down the same way — use it as the
-        # reliable fallback.
+    async def handle_unexpected_error(request: Request, exc: Exception):
         request_id = get_request_id() or getattr(request.state, "request_id", "")
         _log.error(
             "unhandled_exception",
@@ -90,10 +102,13 @@ def register_exception_handlers(app: FastAPI) -> None:
             error_type=type(exc).__name__,
             message=str(exc),
         )
+        message = "Something went wrong on our end."
+        if _is_htmx(request):
+            return _render_alert(request, message, request_id, 500)
         envelope = APIResponse.fail(
             ErrorDetail(
                 code="InternalServerError",
-                message="Something went wrong on our end.",
+                message=message,
                 request_id=request_id,
             )
         )

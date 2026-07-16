@@ -51,12 +51,6 @@ class PanicRecoveryMiddleware:
 
 
 def create_app(settings: Settings | None = None) -> FastAPI:
-    """
-    Builds a fully-wired FastAPI app. Accepts an optional Settings
-    override so tests can construct an app against a test Settings
-    instance without touching environment variables or process-global
-    state — the same DI principle as Database.
-    """
     settings = settings or get_settings()
     configure_logging(level="DEBUG" if settings.is_development else "INFO")
 
@@ -73,9 +67,6 @@ def create_app(settings: Settings | None = None) -> FastAPI:
 
     app = FastAPI(lifespan=lifespan)
 
-    # Available to routes/dependencies via app.state, not a module-level
-    # global — this is what "inject config/db where needed" means in
-    # FastAPI's idiom.
     app.state.settings = settings
     app.state.database = database
 
@@ -85,8 +76,6 @@ def create_app(settings: Settings | None = None) -> FastAPI:
 
     from ai.setup import create_ai_service
 
-    # Optional dependency per TDD Startup Sequence — an unreachable/
-    # unconfigured LLM provider must not block the app from booting.
     app.state.ai_service = create_ai_service(settings)
 
     register_exception_handlers(app)

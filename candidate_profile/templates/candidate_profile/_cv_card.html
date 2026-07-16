@@ -1,0 +1,74 @@
+<div id="cv-card" class="bg-surface-card border border-border-subtle rounded-xl p-8 md:p-12 shadow-ambient">
+  <div class="flex flex-col items-center">
+    <div class="mb-8 text-center">
+      <h2 class="font-headline-md text-headline-md text-text-primary mb-2">Upload your CV</h2>
+      <p class="font-body-md text-body-md text-text-secondary">We use your experience to generate interview questions relevant to you.</p>
+    </div>
+
+    {% if profile.cv_status == "done" %}
+      <div class="w-full border-2 border-primary/30 rounded-xl p-12 flex flex-col items-center justify-center bg-primary/5">
+        <div class="w-16 h-16 rounded-full bg-primary-fixed/30 flex items-center justify-center mb-6 text-primary">
+          <span class="material-symbols-outlined text-[32px]">check_circle</span>
+        </div>
+        <p class="font-body-md text-text-primary font-medium mb-1">CV received</p>
+        <p class="font-label-md text-text-secondary">{{ profile.cv_structured.name or "Ready for interview questions" }}</p>
+        <form hx-post="/api/v1/profile/cv" hx-encoding="multipart/form-data"
+              hx-target="#cv-card" hx-swap="outerHTML" class="mt-6">
+          <label class="font-label-md text-primary hover:underline cursor-pointer">
+            Replace file
+            <input type="file" name="file" accept=".pdf,.docx" class="hidden" onchange="this.form.requestSubmit()">
+          </label>
+        </form>
+      </div>
+
+    {% elif profile.cv_status == "failed" %}
+      <div class="w-full border-2 border-error/30 rounded-xl p-12 flex flex-col items-center justify-center bg-error-container/30">
+        <div class="w-16 h-16 rounded-full bg-error-container flex items-center justify-center mb-6 text-error">
+          <span class="material-symbols-outlined text-[32px]">error</span>
+        </div>
+        <p class="font-body-md text-text-primary font-medium mb-1">We couldn't process that file</p>
+        <p class="font-label-md text-text-secondary mb-4">Try a different PDF or Word document.</p>
+        <form hx-post="/api/v1/profile/cv" hx-encoding="multipart/form-data"
+              hx-target="#cv-card" hx-swap="outerHTML">
+          <label class="px-8 h-12 bg-surface-card border border-border-subtle rounded-lg font-label-md text-primary hover:bg-surface-container transition-colors shadow-sm flex items-center cursor-pointer">
+            Try again
+            <input type="file" name="file" accept=".pdf,.docx" class="hidden" onchange="this.form.requestSubmit()">
+          </label>
+        </form>
+      </div>
+
+    {% else %}
+      <form id="cv-drop-zone" hx-post="/api/v1/profile/cv" hx-encoding="multipart/form-data"
+            hx-target="#cv-card" hx-swap="outerHTML" hx-indicator="#cv-upload-indicator"
+            class="w-full border-2 border-dashed border-outline-variant rounded-xl p-12 flex flex-col items-center justify-center transition-all duration-300 hover:border-primary bg-surface-container-low/30">
+        <div class="w-16 h-16 rounded-full bg-primary-fixed/30 flex items-center justify-center mb-6 text-primary">
+          <span class="material-symbols-outlined text-[32px]">upload_file</span>
+        </div>
+        <p class="font-body-md text-text-primary font-medium mb-4">Drag and drop your PDF or Word document</p>
+        <label class="px-8 h-12 bg-surface-card border border-border-subtle rounded-lg font-label-md text-primary hover:bg-surface-container transition-colors shadow-sm flex items-center cursor-pointer">
+          Browse Files
+          <input type="file" name="file" accept=".pdf,.docx" class="hidden" onchange="this.form.requestSubmit()">
+        </label>
+        <span id="cv-upload-indicator" class="htmx-indicator font-label-md text-text-secondary mt-4">Uploading&hellip;</span>
+      </form>
+      <script>
+        (function () {
+          const zone = document.getElementById("cv-drop-zone");
+          if (!zone) return;
+          const input = zone.querySelector('input[type="file"]');
+          ["dragenter", "dragover"].forEach(evt =>
+            zone.addEventListener(evt, e => { e.preventDefault(); zone.classList.add("border-primary"); }));
+          ["dragleave", "drop"].forEach(evt =>
+            zone.addEventListener(evt, e => { e.preventDefault(); zone.classList.remove("border-primary"); }));
+          zone.addEventListener("drop", e => {
+            if (e.dataTransfer.files.length > 0) {
+              input.files = e.dataTransfer.files;
+              zone.requestSubmit();
+            }
+          });
+        })();
+      </script>
+    {% endif %}
+  </div>
+</div>
+{% if oob %}{% include "candidate_profile/_continue_button.html" with context %}{% endif %}

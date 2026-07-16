@@ -161,6 +161,85 @@ def test_upload_cv_when_ai_unavailable_returns_422(client, app):
     assert r.json()["error"]["code"] == "CVStructuringError"
 
 
+# --- POST /profile/cv: HTMX fragment responses ---------------------------
+
+
+def test_upload_cv_htmx_success_returns_cv_card_fragment(client, app):
+    _login(client)
+    good_cv = CVStructured(
+        is_valid=True,
+        work_experience=[WorkExperience(company="Acme", title="Eng", start_date="2020")],
+        skills=[Skill(name="Python")],
+    )
+    app.state.ai_service = FakeAIService(cv_result=good_cv)
+
+    r = client.post(
+        "/api/v1/profile/cv",
+        files={"file": ("resume.docx", _docx_bytes("Ada, Engineer, Python"), "application/octet-stream")},
+        headers={"HX-Request": "true"},
+    )
+    assert r.status_code == 200
+    assert "text/html" in r.headers["content-type"]
+    assert 'id="cv-card"' in r.text
+    assert "CV received" in r.text
+
+
+def test_upload_cv_htmx_success_also_oob_swaps_continue_button_to_enabled(client, app):
+    _login(client)
+    good_cv = CVStructured(
+        is_valid=True,
+        work_experience=[WorkExperience(company="Acme", title="Eng", start_date="2020")],
+        skills=[Skill(name="Python")],
+    )
+    app.state.ai_service = FakeAIService(cv_result=good_cv)
+
+    r = client.post(
+        "/api/v1/profile/cv",
+        files={"file": ("resume.docx", _docx_bytes("Ada, Engineer, Python"), "application/octet-stream")},
+        headers={"HX-Request": "true"},
+    )
+    assert 'id="continue-button-region"' in r.text
+    assert 'hx-swap-oob="true"' in r.text
+    assert 'href="/dashboard"' in r.text  # enabled link, not the disabled span
+
+
+def test_upload_cv_htmx_validation_failure_renders_alert_not_card(client):
+    _login(client)
+    r = client.post(
+        "/api/v1/profile/cv",
+        files={"file": ("resume.txt", b"hello", "text/plain")},
+        headers={"HX-Request": "true"},
+    )
+    assert r.status_code == 422
+    assert "text/html" in r.headers["content-type"]
+    assert 'id="alert-region"' in r.text
+
+
+# --- POST /profile/github: HTMX fragment responses ------------------------
+
+
+def test_connect_github_htmx_returns_github_card_fragment(client, app):
+    _login(client)
+    good_github = GitHubStructured(is_valid=True, notable_repos=[])
+    app.state.ai_service = FakeAIService(github_result=good_github)
+
+    with patch(
+        "candidate_profile.service.fetch_github_raw_profile",
+        new=AsyncMock(
+            return_value={"profile": {"created_at": "2020-01-01T00:00:00Z"}, "repos": []}
+        ),
+    ):
+        r = client.post(
+            "/api/v1/profile/github",
+            data={"username": "adalovelace"},
+            headers={"HX-Request": "true"},
+        )
+    assert r.status_code == 200
+    assert "text/html" in r.headers["content-type"]
+    assert 'id="github-card"' in r.text
+    assert "adalovelace" in r.text
+
+
 # --- POST /profile/github: HTTP-boundary validation ----------------------
 
 

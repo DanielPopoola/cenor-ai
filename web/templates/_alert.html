@@ -1,0 +1,18 @@
+<div id="alert-region" hx-swap-oob="true">
+    <div
+        class="flex items-start gap-3 p-4 rounded-lg bg-error-container border border-error/20 text-on-error-container"
+        role="alert"
+    >
+        <span class="material-symbols-outlined text-error text-[20px] mt-0.5"
+            >error</span
+        >
+        <div class="flex-1">
+            <p class="font-label-md text-label-md font-medium">{{ message }}</p>
+            {% if request_id %}
+            <p class="font-label-md text-[11px] opacity-60 mt-1">
+                Reference: {{ request_id }}
+            </p>
+            {% endif %}
+        </div>
+    </div>
+</div>

@@ -1,5 +1,5 @@
+from collections.abc import Iterator
 from pathlib import Path
-from typing import Iterator
 
 from fastapi import Cookie, Depends, Request
 from fastapi.templating import Jinja2Templates
@@ -14,13 +14,7 @@ from config import Settings
 
 _ROOT = Path(__file__).parent.parent
 
-# One shared Jinja2Templates instance, searching web/templates/ (base
-# layout, shared partials) plus every domain's own templates/ folder
-# (EPICS.md ticket convention: "Each domain serving fragments gets its
-# own templates/ subfolder... since rendering is a concern belonging to
-# the domain producing the data"). A single instance means a domain
-# fragment can `{% extends "base.html" %}` without needing its own
-# Jinja2Templates instance or duplicated filter registration.
+
 _TEMPLATE_DIRS = [
     _ROOT / "web" / "templates",
     _ROOT / "session" / "templates",
@@ -36,12 +30,6 @@ templates.env.filters["session_status_label"] = session_status_label
 
 
 def is_htmx(request: Request) -> bool:
-    """
-    Content-negotiation helper for the HX-Request header (EPICS.md's
-    "HTMX / JSON routing convention"): every route.py branches on this
-    once, for rendering only — the service call underneath is
-    identical whichever branch is taken.
-    """
     return request.headers.get("HX-Request") == "true"
 
 

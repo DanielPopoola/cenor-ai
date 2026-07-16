@@ -1,0 +1,13 @@
+<div id="continue-button-region"{% if oob %} hx-swap-oob="true"{% endif %}>
+  {% if profile.cv_status == "done" %}
+    <a href="/dashboard"
+       class="w-full md:w-[240px] h-14 bg-primary text-on-primary rounded-lg font-label-md text-lg hover:bg-primary/95 transition-all shadow-md flex items-center justify-center">
+      Continue
+    </a>
+  {% else %}
+    <span class="w-full md:w-[240px] h-14 bg-surface-container text-text-secondary rounded-lg font-label-md text-lg flex items-center justify-center cursor-not-allowed"
+          title="Upload your CV to continue">
+      Continue
+    </span>
+  {% endif %}
+</div>

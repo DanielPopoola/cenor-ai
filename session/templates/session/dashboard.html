@@ -1,0 +1,113 @@
+{% extends "base.html" %}
+
+{% block title %}Cerno | Dashboard{% endblock %}
+
+{% block nav %}
+<header class="bg-surface border-b border-border-subtle w-full sticky top-0 z-50">
+  <div class="max-w-container-max mx-auto flex justify-between items-center h-16 px-margin-mobile md:px-margin-desktop">
+    <div class="flex items-center gap-8">
+      <a href="/dashboard" class="font-headline-md text-headline-md font-semibold text-primary">Cerno</a>
+      <nav class="hidden md:flex items-center gap-6">
+        <a href="/dashboard" class="text-primary font-bold border-b-2 border-primary pb-1">Dashboard</a>
+        <a href="/sessions/new" class="text-secondary font-medium hover:text-primary transition-colors">New Session</a>
+      </nav>
+    </div>
+    {# Fixes mockup review: adds the missing avatar -> logout affordance
+       (dashboard.html's mockup had an avatar image with no click
+       behavior at all). A simple dropdown-free approach: click the
+       avatar, reveal a logout button beneath it. #}
+    <div class="relative">
+      <button onclick="document.getElementById('user-menu').classList.toggle('hidden')"
+              class="w-9 h-9 rounded-full bg-primary text-on-primary flex items-center justify-center font-label-md font-semibold">
+        {{ user.name[0]|upper if user.name else "?" }}
+      </button>
+      <div id="user-menu" class="hidden absolute right-0 mt-2 w-48 bg-surface-card border border-border-subtle rounded-lg shadow-ambient py-2 z-50">
+        <p class="px-4 py-2 font-label-md text-label-md text-text-secondary truncate">{{ user.email }}</p>
+        <div class="h-px bg-border-subtle my-1"></div>
+        <form method="post" action="/api/v1/auth/logout">
+          <button type="submit" class="w-full text-left px-4 py-2 font-label-md text-label-md text-text-primary hover:bg-surface-container-low transition-colors">
+            Log out
+          </button>
+        </form>
+      </div>
+    </div>
+  </div>
+</header>
+{% endblock %}
+
+{% block content %}
+<div class="max-w-container-max mx-auto px-margin-mobile md:px-margin-desktop py-20">
+
+  <section class="flex flex-col md:flex-row justify-between items-end mb-16 gap-6">
+    <div class="max-w-2xl">
+      <h1 class="font-display text-display mb-2">Welcome back{% if user.name %}, {{ user.name.split(" ")[0] }}{% endif %}.</h1>
+      <p class="font-body-lg text-body-lg text-text-secondary italic">Every session helps reveal another part of how you think.</p>
+    </div>
+    <a href="/sessions/new"
+       class="h-12 px-8 bg-background border border-accent-muted-blue text-accent-muted-blue rounded-lg font-label-md text-label-md font-medium hover:bg-surface-container-low transition-all flex items-center">
+      New Interview Session
+    </a>
+  </section>
+
+  {% if in_progress %}
+  <div class="p-8 bg-surface-card border border-border-subtle rounded-xl shadow-sm flex justify-between items-center mb-12">
+    <div>
+      <span class="font-label-md text-label-md text-secondary uppercase tracking-widest block mb-1">In Progress</span>
+      <h3 class="font-body-lg text-body-lg font-medium">
+        Continue Interview: {{ in_progress.job_title }}{% if in_progress.company %} at {{ in_progress.company }}{% endif %}
+      </h3>
+    </div>
+    <a href="/sessions/{{ in_progress.id }}"
+       class="h-10 px-6 bg-accent-muted-blue text-white rounded-lg font-label-md text-label-md hover:bg-primary transition-colors flex items-center">
+      Resume
+    </a>
+  </div>
+  {% endif %}
+
+  <section>
+    <h2 class="font-headline-lg text-headline-lg mb-8">Recent Sessions</h2>
+    {% if cards %}
+    <div class="space-y-4">
+      {% for card in cards %}
+      <div class="p-6 bg-surface-card border border-border-subtle rounded-xl flex flex-col md:flex-row md:items-center justify-between gap-4">
+        <div class="flex-1">
+          <div class="flex items-center gap-3 mb-2">
+            <h4 class="font-headline-md text-[20px] font-semibold">{{ card.job_title }}</h4>
+            {% if card.company %}
+            <span class="text-secondary">&bull;</span>
+            <span class="text-text-secondary font-medium">{{ card.company }}</span>
+            {% endif %}
+          </div>
+          <div class="flex flex-wrap gap-4 text-text-secondary text-label-md">
+            <span class="flex items-center gap-1">
+              <span class="material-symbols-outlined text-[18px]">{{ "code" if card.lens_type == "coding" else "forum" }}</span>
+              {{ card.lens_type|title }}
+            </span>
+            <span class="flex items-center gap-1">
+              <span class="material-symbols-outlined text-[18px]">calendar_today</span>
+              {{ card.started_at_display }}
+            </span>
+          </div>
+        </div>
+        <div class="flex items-center gap-6">
+          {% if card.status == "completed" %}
+            <span class="px-3 py-1 bg-[#F0EEEB] rounded-full text-label-md text-secondary font-medium">Completed</span>
+            <a href="/sessions/{{ card.id }}/feedback" class="text-accent-muted-blue font-medium hover:underline">View Feedback</a>
+          {% elif card.status == "in_progress" %}
+            <a href="/sessions/{{ card.id }}" class="text-accent-muted-blue font-medium hover:underline">Continue</a>
+          {% else %}
+            <span class="px-3 py-1 bg-surface-container rounded-full text-label-md text-secondary font-medium">Abandoned</span>
+          {% endif %}
+        </div>
+      </div>
+      {% endfor %}
+    </div>
+    {% else %}
+    <div class="p-12 text-center border border-dashed border-border-subtle rounded-xl">
+      <p class="text-text-secondary">No sessions yet — start your first interview to see it here.</p>
+    </div>
+    {% endif %}
+  </section>
+
+</div>
+{% endblock %}

@@ -91,3 +91,27 @@ def test_every_error_response_has_a_request_id():
     for path in ["/notfound", "/validation", "/conflict", "/unauthorized", "/unexpected"]:
         r = _client().get(path)
         assert r.json()["error"]["request_id"]
+
+
+def test_htmx_request_gets_html_alert_fragment_not_json():
+    r = _client().get("/validation", headers={"HX-Request": "true"})
+    assert r.status_code == 422
+    assert "text/html" in r.headers["content-type"]
+    assert "bad input" in r.text
+    assert 'hx-swap-oob="true"' in r.text
+    assert 'id="alert-region"' in r.text
+
+
+def test_htmx_unhandled_exception_gets_generic_html_alert():
+    r = _client().get("/unexpected", headers={"HX-Request": "true"})
+    assert r.status_code == 500
+    assert "text/html" in r.headers["content-type"]
+    assert "boom" not in r.text
+    assert "Something went wrong" in r.text
+
+
+def test_non_htmx_request_still_gets_json():
+    """Guards against the content-negotiation change accidentally
+    flipping the default branch — JSON API consumers must be unaffected."""
+    r = _client().get("/validation")
+    assert "application/json" in r.headers["content-type"]

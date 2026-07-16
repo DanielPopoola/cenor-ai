@@ -1,7 +1,8 @@
 import re
-from typing import Iterator
+from collections.abc import Iterator
 
 from fastapi import APIRouter, Depends, File, Form, Request, UploadFile
+from fastapi.responses import Response
 from sqlalchemy.orm import Session as DBSession
 
 from auth.domain import User
@@ -12,12 +13,11 @@ from candidate_profile.service import CandidateProfileService
 from common.errors import ValidationError
 from common.schemas import APIResponse
 from config import Settings
+from web.templating import is_htmx, templates
 
 router = APIRouter()
 
-# GitHub usernames: alphanumeric + single hyphens, can't start/end with
-# a hyphen, max 39 chars — GitHub's own username constraints. Rejecting
-# obviously-malformed input here avoids a wasted outbound API call.
+
 _GITHUB_USERNAME_PATTERN = re.compile(
     r"^[a-zA-Z\d](?:[a-zA-Z\d]|-(?=[a-zA-Z\d])){0,38}$"
 )
@@ -80,12 +80,13 @@ def get_profile(
 
 @router.post("/cv")
 async def upload_cv(
+    request: Request,
     db: DBSession = Depends(get_db),
     settings: Settings = Depends(get_settings_dep),
     user: User = Depends(get_current_user),
     service: CandidateProfileService = Depends(get_candidate_profile_service),
     file: UploadFile = File(...),
-) -> APIResponse[CandidateProfileResponse]:
+) -> Response | APIResponse[CandidateProfileResponse]:
     file_bytes = await file.read()
     _validate_cv_upload(file.filename, file_bytes, settings)
 
@@ -93,19 +94,36 @@ async def upload_cv(
         user.id, file_bytes, file.filename if file.filename else ""
     )
     db.commit()
-    return APIResponse.ok(CandidateProfileResponse.from_domain(profile))
+    profile_response = CandidateProfileResponse.from_domain(profile)
+
+    if is_htmx(request):
+        return templates.TemplateResponse(
+            request,
+            "candidate_profile/_cv_card.html",
+            {"profile": profile_response, "oob": True},
+        )
+    return APIResponse.ok(profile_response)
 
 
 @router.post("/github")
 async def connect_github(
+    request: Request,
     db: DBSession = Depends(get_db),
     user: User = Depends(get_current_user),
     service: CandidateProfileService = Depends(get_candidate_profile_service),
     username: str = Form(...),
-) -> APIResponse[CandidateProfileResponse]:
+) -> Response | APIResponse[CandidateProfileResponse]:
     username = username.strip()
     _validate_github_username(username)
 
     profile = await service.connect_github(user.id, username)
     db.commit()
-    return APIResponse.ok(CandidateProfileResponse.from_domain(profile))
+    profile_response = CandidateProfileResponse.from_domain(profile)
+
+    if is_htmx(request):
+        return templates.TemplateResponse(
+            request,
+            "candidate_profile/_github_card.html",
+            {"profile": profile_response},
+        )
+    return APIResponse.ok(profile_response)
