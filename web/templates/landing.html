@@ -2,66 +2,231 @@
 
 {% block title %}Cerno | Practice being observed, not graded.{% endblock %}
 
+{% block extra_head %}
+<style>
+  html { scroll-behavior: smooth; }
+  .scroll-anchor { scroll-margin-top: 5rem; }
+  .grain-dot { background-image: radial-gradient(currentColor 1px, transparent 1px); background-size: 20px 20px; }
+</style>
+{% endblock %}
+
+{% macro google_g() %}
+<svg class="w-5 h-5 flex-shrink-0" viewBox="0 0 24 24">
+  <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4"/>
+  <path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"/>
+  <path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l3.66-2.84z" fill="#FBBC05"/>
+  <path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335"/>
+</svg>
+{% endmacro %}
+
 {% block nav %}
-<header class="bg-surface border-b border-border-subtle w-full sticky top-0 z-50">
+<header class="bg-surface/90 backdrop-blur-md border-b border-border-subtle w-full sticky top-0 z-50">
   <div class="max-w-container-max mx-auto flex justify-between items-center h-16 px-margin-mobile md:px-margin-desktop">
-    <span class="font-headline-md text-headline-md font-semibold text-primary">Cerno</span>
-    <a href="/api/v1/auth/google"
-       class="bg-primary text-on-primary px-5 py-2.5 rounded-lg font-label-md text-label-md hover:bg-primary/90 transition-colors">
-      Continue with Google
-    </a>
+    <div class="flex items-center gap-3">
+      <div class="w-8 h-8 flex items-center justify-center bg-primary rounded-md text-on-primary">
+        <span class="material-symbols-outlined text-[18px]">cognition</span>
+      </div>
+      <span class="font-headline-md text-headline-md font-semibold text-primary">Cerno</span>
+    </div>
+    <nav class="hidden md:flex items-center gap-8">
+      <a href="#how-it-works" class="font-label-md text-label-md text-on-surface-variant hover:text-primary transition-colors">How it works</a>
+      <a href="#modes" class="font-label-md text-label-md text-on-surface-variant hover:text-primary transition-colors">Modes</a>
+      <div class="h-4 w-px bg-border-subtle"></div>
+      <a href="/api/v1/auth/google"
+         class="flex items-center gap-2 bg-primary text-on-primary px-5 py-2.5 rounded-lg font-label-md text-label-md hover:bg-primary/90 transition-colors">
+        {{ google_g() }}
+        Continue with Google
+      </a>
+    </nav>
   </div>
 </header>
 {% endblock %}
 
 {% block content %}
-<section class="px-margin-mobile md:px-margin-desktop pt-20 pb-24">
-  <div class="max-w-container-max mx-auto text-center max-w-[720px] mx-auto">
-    <h1 class="font-display text-display text-text-primary mb-6 leading-tight">
-      Practice being <span class="italic text-primary">observed</span>, not graded.
-    </h1>
-    <p class="font-body-lg text-body-lg text-text-secondary leading-relaxed mb-10 max-w-[560px] mx-auto">
-      Cerno watches how you reason through problems — grounded in your real background and
-      the specific job you're preparing for. Feedback comes after the session, never during it.
+<!-- Hero -->
+<section class="px-margin-mobile md:px-margin-desktop pt-20 pb-28 overflow-hidden">
+  <div class="max-w-container-max mx-auto grid lg:grid-cols-2 gap-16 items-center">
+    <div>
+      <h1 class="font-display text-display text-text-primary mb-8 leading-[1.1]">
+        Practice being <span class="italic text-primary">observed</span>, not graded.
+      </h1>
+      <p class="font-body-lg text-body-lg text-text-secondary leading-relaxed mb-10 max-w-[520px]">
+        Cerno watches how you reason through problems — grounded in your real background and
+        the specific job you're preparing for. Feedback comes after the session, never during it.
+      </p>
+      <div class="flex flex-col sm:flex-row items-center gap-6">
+        <a href="/api/v1/auth/google"
+           class="flex items-center justify-center gap-3 bg-primary text-on-primary px-8 py-4 rounded-lg font-label-md text-lg hover:bg-primary/90 transition-colors shadow-md w-full sm:w-auto">
+          {{ google_g() }}
+          Continue with Google
+        </a>
+        <a href="#how-it-works" class="flex items-center gap-2 text-on-surface-variant font-medium hover:text-primary transition-colors">
+          See how it works
+          <span class="material-symbols-outlined text-[18px]">arrow_forward</span>
+        </a>
+      </div>
+    </div>
+
+    <!-- Hero visual: layered, built purely in CSS/SVG (no hotlinked imagery) -->
+    <div class="relative">
+      <div class="aspect-square bg-gradient-to-br from-primary-container to-primary rounded-3xl overflow-hidden border border-border-subtle shadow-2xl relative">
+        <div class="absolute inset-0 opacity-[0.15] grain-dot text-on-primary"></div>
+        <div class="absolute inset-8 bg-surface-card/95 rounded-xl shadow-lg p-6 flex flex-col gap-3">
+          <div class="flex items-center gap-2 pb-3 border-b border-border-subtle">
+            <span class="w-2.5 h-2.5 rounded-full bg-error/60"></span>
+            <span class="w-2.5 h-2.5 rounded-full bg-tertiary-fixed-dim/80"></span>
+            <span class="w-2.5 h-2.5 rounded-full bg-primary/40"></span>
+            <span class="font-code text-code text-text-secondary ml-2">LRUCache.py</span>
+          </div>
+          <div class="font-code text-code text-text-secondary space-y-1.5 flex-1">
+            <p><span class="text-primary">class</span> LRUCache:</p>
+            <p class="pl-4"><span class="text-primary">def</span> __init__(self, capacity):</p>
+            <p class="pl-8 text-text-primary/70">self.cache = {}</p>
+            <p class="pl-8 text-text-primary/70">self.capacity = capacity</p>
+            <p class="pl-4"><span class="text-primary">def</span> get(self, key):</p>
+            <p class="pl-8 text-on-surface-variant italic">... </p>
+          </div>
+        </div>
+      </div>
+      <!-- Floating observation badge -->
+      <div class="absolute -bottom-6 -left-6 bg-white p-6 rounded-2xl border border-border-subtle shadow-xl max-w-xs">
+        <div class="flex items-start gap-4">
+          <span class="material-symbols-outlined text-accent-muted-blue">insights</span>
+          <div>
+            <p class="font-label-md text-label-md font-semibold text-text-primary">Reasoning Observation</p>
+            <p class="font-label-md text-[13px] text-text-secondary mt-1">"Candidate identified the edge case in the recursive base condition before writing code."</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- Observation vs Evaluation -->
+<section class="px-margin-mobile md:px-margin-desktop py-24 bg-surface-container-low">
+  <div class="max-w-container-max mx-auto">
+    <div class="mb-16 text-center">
+      <h2 class="font-display text-headline-lg text-text-primary mb-4">Observation vs. Evaluation</h2>
+      <p class="font-body-md text-body-md text-text-secondary max-w-xl mx-auto">
+        Traditional tools focus on the binary outcome. Cerno focuses on the path taken to get there.
+      </p>
+    </div>
+    <div class="grid md:grid-cols-2 gap-8">
+      <div class="border border-border-subtle rounded-2xl bg-surface-card p-10 flex flex-col items-center justify-center text-center opacity-70 hover:opacity-100 transition-opacity">
+        <span class="font-label-md text-[11px] font-bold tracking-widest text-on-surface-variant uppercase mb-8">Traditional Evaluation</span>
+        <div class="flex flex-col items-center gap-4 w-full max-w-xs">
+          <div class="w-full h-12 rounded-lg border border-border-subtle flex items-center justify-center font-label-md text-label-md">Question</div>
+          <span class="material-symbols-outlined text-outline-variant">arrow_downward</span>
+          <div class="w-full h-12 rounded-lg border border-border-subtle flex items-center justify-center font-label-md text-label-md">Answer</div>
+          <span class="material-symbols-outlined text-outline-variant">arrow_downward</span>
+          <div class="w-full h-12 rounded-lg bg-surface-container-highest flex items-center justify-center font-label-md text-label-md font-bold text-error">Correct / Incorrect</div>
+        </div>
+      </div>
+      <div class="border-2 border-primary-container rounded-2xl bg-surface-card p-10 relative overflow-hidden shadow-lg">
+        <div class="absolute top-0 right-0 p-4">
+          <span class="material-symbols-outlined text-accent-muted-blue">stars</span>
+        </div>
+        <div class="flex flex-col items-center text-center">
+          <span class="font-label-md text-[11px] font-bold tracking-widest text-primary uppercase mb-8">Cerno Observation</span>
+          <div class="grid grid-cols-1 gap-3 w-full max-w-md">
+            <div class="p-3 rounded-lg bg-primary/5 border border-primary/20 font-label-md text-label-md font-medium text-primary">Question</div>
+            <span class="material-symbols-outlined text-primary/30 mx-auto">expand_more</span>
+            <div class="p-3 rounded-lg bg-surface-container-low border border-border-subtle font-label-md text-label-md text-on-surface-variant">Clarified assumptions</div>
+            <div class="p-3 rounded-lg bg-surface-container-low border border-border-subtle font-label-md text-label-md text-on-surface-variant">Explored tradeoffs</div>
+            <div class="p-3 rounded-lg bg-surface-container-low border border-border-subtle font-label-md text-label-md text-on-surface-variant">Tested examples</div>
+            <span class="material-symbols-outlined text-primary/30 mx-auto">expand_more</span>
+            <div class="p-4 rounded-lg bg-primary text-on-primary font-label-md text-label-md font-bold shadow-md">Thoughtful Feedback &amp; Growth</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- How it works -->
+<section id="how-it-works" class="scroll-anchor px-margin-mobile md:px-margin-desktop py-32">
+  <div class="max-w-container-max mx-auto">
+    <h2 class="font-display text-headline-lg text-text-primary mb-16 text-center">How it works</h2>
+    <div class="grid lg:grid-cols-3 gap-12">
+      <div class="flex flex-col gap-6">
+        <div class="w-14 h-14 rounded-full bg-surface-container-high flex items-center justify-center">
+          <span class="material-symbols-outlined text-primary">upload_file</span>
+        </div>
+        <h3 class="font-headline-md text-headline-md text-text-primary">Bring your context</h3>
+        <p class="font-body-md text-body-md text-text-secondary leading-relaxed">
+          Upload your CV and connect GitHub once. Cerno grounds every question in your real experience.
+        </p>
+      </div>
+      <div class="flex flex-col gap-6">
+        <div class="w-14 h-14 rounded-full bg-surface-container-high flex items-center justify-center">
+          <span class="material-symbols-outlined text-primary">forum</span>
+        </div>
+        <h3 class="font-headline-md text-headline-md text-text-primary">Practice the real thing</h3>
+        <p class="font-body-md text-body-md text-text-secondary leading-relaxed">
+          Paste a job description. Sessions adapt to it — coding, systems design, or straight conversation.
+        </p>
+      </div>
+      <div class="flex flex-col gap-6">
+        <div class="w-14 h-14 rounded-full bg-surface-container-high flex items-center justify-center">
+          <span class="material-symbols-outlined text-primary">auto_awesome</span>
+        </div>
+        <h3 class="font-headline-md text-headline-md text-text-primary">Reflect afterwards</h3>
+        <p class="font-body-md text-body-md text-text-secondary leading-relaxed">
+          Get factual observations tied to moments in the session, then a synthesized, growth-framed summary.
+        </p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- Modes -->
+<section id="modes" class="scroll-anchor px-margin-mobile md:px-margin-desktop py-24 bg-surface-card">
+  <div class="max-w-container-max mx-auto">
+    <h2 class="font-display text-headline-lg text-text-primary mb-16 text-center">Engineered for every session.</h2>
+    <div class="grid md:grid-cols-2 gap-8">
+      <!-- Coding mode -->
+      <div class="group relative overflow-hidden rounded-3xl border border-border-subtle bg-surface-main p-12 hover:border-primary/30 transition-all duration-500">
+        <span class="font-label-md text-[11px] font-bold tracking-widest text-primary uppercase mb-4 block">01 / Logic</span>
+        <h3 class="font-display text-headline-lg text-text-primary mb-6">Coding</h3>
+        <p class="font-body-lg text-body-lg text-text-secondary mb-10 max-w-sm">
+          Solve algorithmic problems while explaining your thinking. Cerno observes how you traverse complexity.
+        </p>
+        <div class="aspect-video bg-surface-card rounded-xl border border-border-subtle shadow-inner overflow-hidden p-5 font-code text-code text-text-secondary">
+          <p class="text-primary">function <span class="text-text-primary">solve</span>(input) {</p>
+          <p class="pl-4 text-on-surface-variant italic">// clarifying edge cases first...</p>
+          <p class="pl-4">const seen = new Map();</p>
+          <p>}</p>
+        </div>
+      </div>
+      <!-- Conversational mode -->
+      <div class="group relative overflow-hidden rounded-3xl border border-border-subtle bg-surface-main p-12 hover:border-primary/30 transition-all duration-500">
+        <span class="font-label-md text-[11px] font-bold tracking-widest text-primary uppercase mb-4 block">02 / Design</span>
+        <h3 class="font-display text-headline-lg text-text-primary mb-6">Conversational</h3>
+        <p class="font-body-lg text-body-lg text-text-secondary mb-10 max-w-sm">
+          Discuss system architecture and trade-offs naturally. Practice articulating your "why."
+        </p>
+        <div class="aspect-video bg-surface-card rounded-xl border border-border-subtle shadow-inner overflow-hidden p-5 flex items-center justify-center gap-3">
+          <div class="w-14 h-10 rounded border border-primary/40 flex items-center justify-center font-label-md text-[10px] text-primary">API</div>
+          <span class="material-symbols-outlined text-outline-variant text-[16px]">arrow_forward</span>
+          <div class="w-14 h-10 rounded border border-primary/40 flex items-center justify-center font-label-md text-[10px] text-primary">Cache</div>
+          <span class="material-symbols-outlined text-outline-variant text-[16px]">arrow_forward</span>
+          <div class="w-14 h-10 rounded border border-primary/40 flex items-center justify-center font-label-md text-[10px] text-primary">DB</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- Final CTA -->
+<section class="px-margin-mobile md:px-margin-desktop py-32 text-center">
+  <div class="max-w-[560px] mx-auto">
+    <h2 class="font-display text-headline-lg text-text-primary mb-6">Ready for your next interview?</h2>
+    <p class="font-body-lg text-body-lg text-text-secondary mb-10">
+      Build the confidence to explain your "why," not just your "how."
     </p>
     <a href="/api/v1/auth/google"
        class="inline-flex items-center justify-center gap-3 bg-primary text-on-primary px-8 py-4 rounded-lg font-label-md text-lg hover:bg-primary/90 transition-colors shadow-md">
-      Continue with Google
-    </a>
-  </div>
-</section>
-
-<section class="px-margin-mobile md:px-margin-desktop py-24 bg-surface-container-low">
-  <div class="max-w-container-max mx-auto grid md:grid-cols-3 gap-12">
-    <div class="flex flex-col gap-4">
-      <span class="material-symbols-outlined text-primary text-3xl">upload_file</span>
-      <h3 class="font-headline-md text-headline-md text-text-primary">Bring your context</h3>
-      <p class="font-body-md text-body-md text-text-secondary leading-relaxed">
-        Upload your CV and connect GitHub once. Every session is grounded in your actual experience.
-      </p>
-    </div>
-    <div class="flex flex-col gap-4">
-      <span class="material-symbols-outlined text-primary text-3xl">forum</span>
-      <h3 class="font-headline-md text-headline-md text-text-primary">Practice the real thing</h3>
-      <p class="font-body-md text-body-md text-text-secondary leading-relaxed">
-        Paste a job description. Sessions adapt to it — coding, systems design, or a straight conversation.
-      </p>
-    </div>
-    <div class="flex flex-col gap-4">
-      <span class="material-symbols-outlined text-primary text-3xl">insights</span>
-      <h3 class="font-headline-md text-headline-md text-text-primary">Reflect afterwards</h3>
-      <p class="font-body-md text-body-md text-text-secondary leading-relaxed">
-        Get factual observations tied to moments in the session, then a synthesized, growth-framed summary.
-      </p>
-    </div>
-  </div>
-</section>
-
-<section class="px-margin-mobile md:px-margin-desktop py-24 text-center">
-  <div class="max-w-[560px] mx-auto">
-    <h2 class="font-display text-headline-lg text-text-primary mb-6">Ready for your next interview?</h2>
-    <a href="/api/v1/auth/google"
-       class="inline-flex items-center justify-center gap-3 bg-primary text-on-primary px-8 py-4 rounded-lg font-label-md text-lg hover:bg-primary/90 transition-colors shadow-md">
+      {{ google_g() }}
       Continue with Google
     </a>
     <p class="font-label-md text-[12px] text-text-secondary uppercase tracking-widest mt-4">No credit card required</p>
