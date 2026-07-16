@@ -85,6 +85,30 @@ def test_auth_page_links_to_google_oauth(client: TestClient):
     assert 'href="/api/v1/auth/google"' in response.text
 
 
+def test_auth_page_redirects_logged_in_user_to_dashboard(client: TestClient):
+    _login(client)
+    response = client.get("/auth", follow_redirects=False)
+
+    assert response.status_code == 302
+    assert response.headers["location"] == "/dashboard"
+
+
+def test_landing_page_returns_html_for_anonymous_visitor(client: TestClient):
+    response = client.get("/")
+
+    assert response.status_code == 200
+    assert "text/html" in response.headers["content-type"]
+    assert 'href="/api/v1/auth/google"' in response.text
+
+
+def test_landing_page_redirects_logged_in_user_to_dashboard(client: TestClient):
+    _login(client)
+    response = client.get("/", follow_redirects=False)
+
+    assert response.status_code == 302
+    assert response.headers["location"] == "/dashboard"
+
+
 def test_static_stylesheet_serves(client: TestClient):
     response = client.get("/static/css/output.css")
 

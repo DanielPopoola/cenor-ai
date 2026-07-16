@@ -1,0 +1,70 @@
+{% extends "base.html" %}
+
+{% block title %}Cerno | Practice being observed, not graded.{% endblock %}
+
+{% block nav %}
+<header class="bg-surface border-b border-border-subtle w-full sticky top-0 z-50">
+  <div class="max-w-container-max mx-auto flex justify-between items-center h-16 px-margin-mobile md:px-margin-desktop">
+    <span class="font-headline-md text-headline-md font-semibold text-primary">Cerno</span>
+    <a href="/api/v1/auth/google"
+       class="bg-primary text-on-primary px-5 py-2.5 rounded-lg font-label-md text-label-md hover:bg-primary/90 transition-colors">
+      Continue with Google
+    </a>
+  </div>
+</header>
+{% endblock %}
+
+{% block content %}
+<section class="px-margin-mobile md:px-margin-desktop pt-20 pb-24">
+  <div class="max-w-container-max mx-auto text-center max-w-[720px] mx-auto">
+    <h1 class="font-display text-display text-text-primary mb-6 leading-tight">
+      Practice being <span class="italic text-primary">observed</span>, not graded.
+    </h1>
+    <p class="font-body-lg text-body-lg text-text-secondary leading-relaxed mb-10 max-w-[560px] mx-auto">
+      Cerno watches how you reason through problems — grounded in your real background and
+      the specific job you're preparing for. Feedback comes after the session, never during it.
+    </p>
+    <a href="/api/v1/auth/google"
+       class="inline-flex items-center justify-center gap-3 bg-primary text-on-primary px-8 py-4 rounded-lg font-label-md text-lg hover:bg-primary/90 transition-colors shadow-md">
+      Continue with Google
+    </a>
+  </div>
+</section>
+
+<section class="px-margin-mobile md:px-margin-desktop py-24 bg-surface-container-low">
+  <div class="max-w-container-max mx-auto grid md:grid-cols-3 gap-12">
+    <div class="flex flex-col gap-4">
+      <span class="material-symbols-outlined text-primary text-3xl">upload_file</span>
+      <h3 class="font-headline-md text-headline-md text-text-primary">Bring your context</h3>
+      <p class="font-body-md text-body-md text-text-secondary leading-relaxed">
+        Upload your CV and connect GitHub once. Every session is grounded in your actual experience.
+      </p>
+    </div>
+    <div class="flex flex-col gap-4">
+      <span class="material-symbols-outlined text-primary text-3xl">forum</span>
+      <h3 class="font-headline-md text-headline-md text-text-primary">Practice the real thing</h3>
+      <p class="font-body-md text-body-md text-text-secondary leading-relaxed">
+        Paste a job description. Sessions adapt to it — coding, systems design, or a straight conversation.
+      </p>
+    </div>
+    <div class="flex flex-col gap-4">
+      <span class="material-symbols-outlined text-primary text-3xl">insights</span>
+      <h3 class="font-headline-md text-headline-md text-text-primary">Reflect afterwards</h3>
+      <p class="font-body-md text-body-md text-text-secondary leading-relaxed">
+        Get factual observations tied to moments in the session, then a synthesized, growth-framed summary.
+      </p>
+    </div>
+  </div>
+</section>
+
+<section class="px-margin-mobile md:px-margin-desktop py-24 text-center">
+  <div class="max-w-[560px] mx-auto">
+    <h2 class="font-display text-headline-lg text-text-primary mb-6">Ready for your next interview?</h2>
+    <a href="/api/v1/auth/google"
+       class="inline-flex items-center justify-center gap-3 bg-primary text-on-primary px-8 py-4 rounded-lg font-label-md text-lg hover:bg-primary/90 transition-colors shadow-md">
+      Continue with Google
+    </a>
+    <p class="font-label-md text-[12px] text-text-secondary uppercase tracking-widest mt-4">No credit card required</p>
+  </div>
+</section>
+{% endblock %}

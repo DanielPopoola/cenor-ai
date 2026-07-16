@@ -2,7 +2,6 @@ import re
 from collections.abc import Iterator
 
 from fastapi import APIRouter, Depends, File, Form, Request, UploadFile
-from fastapi.responses import Response
 from sqlalchemy.orm import Session as DBSession
 
 from auth.domain import User
@@ -86,7 +85,7 @@ async def upload_cv(
     user: User = Depends(get_current_user),
     service: CandidateProfileService = Depends(get_candidate_profile_service),
     file: UploadFile = File(...),
-) -> Response | APIResponse[CandidateProfileResponse]:
+):
     file_bytes = await file.read()
     _validate_cv_upload(file.filename, file_bytes, settings)
 
@@ -112,7 +111,7 @@ async def connect_github(
     user: User = Depends(get_current_user),
     service: CandidateProfileService = Depends(get_candidate_profile_service),
     username: str = Form(...),
-) -> Response | APIResponse[CandidateProfileResponse]:
+):
     username = username.strip()
     _validate_github_username(username)
 

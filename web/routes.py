@@ -11,6 +11,8 @@ from candidate_profile.service import CandidateProfileService
 from job_posting.repository import JobPostingRepository
 from session.lens import derive_lens_type
 from session.repository import SessionRepository
+from fastapi.responses import RedirectResponse
+
 from web.templating import get_current_user_or_none, templates
 
 router = APIRouter()
@@ -20,12 +22,24 @@ def _get_db(request: Request):
     yield from request.app.state.database.get_db_session()
 
 
+@router.get("/")
+def landing_page(
+    request: Request,
+    user: User | None = Depends(get_current_user_or_none),
+):
+    if user is not None:
+        return RedirectResponse(url="/dashboard", status_code=302)
+    return templates.TemplateResponse(request, "landing.html", {"user": None})
+
+
 @router.get("/auth")
 def auth_page(
     request: Request,
     user: User | None = Depends(get_current_user_or_none),
 ):
-    return templates.TemplateResponse(request, "auth/page.html", {"user": user})
+    if user is not None:
+        return RedirectResponse(url="/dashboard", status_code=302)
+    return templates.TemplateResponse(request, "auth/page.html", {"user": None})
 
 
 @router.get("/onboarding")

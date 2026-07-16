@@ -8,6 +8,7 @@ from auth.domain import User
 from auth.errors import InvalidSessionCookieError
 from auth.repository import UserRepository
 from auth.service import AuthService
+from candidate_profile.repository import CandidateProfileRepository
 from config import Settings
 from common.schemas import APIResponse
 
@@ -62,7 +63,14 @@ async def google_callback(
     db.commit()
     cookie_value = service.issue_cookie_value(user.id)
 
-    redirect = RedirectResponse(url="/", status_code=302)
+    profile = CandidateProfileRepository(db).find_by_user_id_or_none(user.id)
+    destination = (
+        "/dashboard"
+        if profile is not None and profile.cv_status == "done"
+        else "/onboarding"
+    )
+
+    redirect = RedirectResponse(url=destination, status_code=302)
     redirect.set_cookie(
         key=settings.cookie_name,
         value=cookie_value,

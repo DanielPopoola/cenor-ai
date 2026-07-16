@@ -82,3 +82,50 @@ def test_every_response_carries_request_id_header(client):
     assert "x-request-id" in r.headers
     # header and envelope's embedded request_id must match
     assert r.headers["x-request-id"] == r.json()["error"]["request_id"]
+
+
+def _callback(client, google_sub: str, email: str):
+    login_resp = client.get("/api/v1/auth/google", follow_redirects=False)
+    state = _extract_state(login_resp.headers["location"])
+
+    fake_profile = {"sub": google_sub, "email": email, "name": "Route"}
+    with patch("httpx.AsyncClient") as MockClient:
+        mock_instance = AsyncMock()
+        MockClient.return_value.__aenter__.return_value = mock_instance
+        mock_instance.post.return_value = _mock_response(200, {"access_token": "tok"})
+        mock_instance.get.return_value = _mock_response(200, fake_profile)
+        return client.get(
+            f"/api/v1/auth/google/callback?code=fake-code&state={state}",
+            follow_redirects=False,
+        )
+
+
+def test_first_time_user_redirected_to_onboarding(client):
+    callback_resp = _callback(client, "g-new-user", "newuser@example.com")
+    assert callback_resp.status_code == 302
+    assert callback_resp.headers["location"] == "/onboarding"
+
+
+def test_returning_user_with_completed_cv_redirected_to_dashboard(client, app):
+    from candidate_profile.domain import CVStructured, Skill, WorkExperience
+    from tests.candidate_profile.test_routes import FakeAIService, _docx_bytes
+
+    app.state.ai_service = FakeAIService(
+        cv_result=CVStructured(
+            is_valid=True,
+            work_experience=[WorkExperience(company="Acme", title="Eng", start_date="2020")],
+            skills=[Skill(name="Python")],
+        )
+    )
+    # First login creates the account and uploads a CV
+    _callback(client, "g-returning-user", "returning@example.com")
+    client.post(
+        "/api/v1/profile/cv",
+        files={"file": ("resume.docx", _docx_bytes("Ada, Engineer"), "application/octet-stream")},
+    )
+    client.post("/api/v1/auth/logout")
+
+    # Second login for the same google_sub should skip onboarding
+    callback_resp = _callback(client, "g-returning-user", "returning@example.com")
+    assert callback_resp.status_code == 302
+    assert callback_resp.headers["location"] == "/dashboard"
