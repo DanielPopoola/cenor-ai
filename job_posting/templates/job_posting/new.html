@@ -1,0 +1,62 @@
+{% extends "base.html" %}
+
+{% block title %}Cerno | New Job{% endblock %}
+
+{% block content %}
+<main class="max-w-[720px] mx-auto px-margin-mobile md:px-0 py-20">
+
+  <section class="mb-16 text-center">
+    <h1 class="font-headline-lg text-headline-lg text-text-primary mb-4">New Job</h1>
+    <p class="font-body-lg text-body-lg text-text-secondary max-w-[600px] mx-auto">
+      Save the role you're preparing for. You can start as many interview sessions
+      against it as you like — each one works through all four areas: algorithms,
+      frameworks &amp; tools, specialized skills, and system design.
+    </p>
+  </section>
+
+  <form hx-post="/jobs/new" hx-target="body" class="space-y-12">
+
+    <div class="space-y-6">
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <div class="flex flex-col gap-2">
+          <label for="title" class="font-label-md text-label-md text-on-surface-variant">Job Title</label>
+          <input id="title" name="title" type="text" required maxlength="200"
+                 placeholder="e.g. Senior Software Engineer"
+                 class="h-12 px-4 rounded-lg bg-surface-card border border-border-subtle font-body-md focus:outline-none focus:border-accent-muted-blue transition-colors">
+        </div>
+        <div class="flex flex-col gap-2">
+          <label for="company" class="font-label-md text-label-md text-on-surface-variant">Company (optional)</label>
+          <input id="company" name="company" type="text" maxlength="200"
+                 placeholder="e.g. Stripe"
+                 class="h-12 px-4 rounded-lg bg-surface-card border border-border-subtle font-body-md focus:outline-none focus:border-accent-muted-blue transition-colors">
+        </div>
+      </div>
+
+      <div class="flex flex-col gap-2">
+        <label for="url" class="font-label-md text-label-md text-on-surface-variant">Job URL (optional)</label>
+        <input id="url" name="url" type="url" maxlength="2000"
+               placeholder="https://careers.company.com/job/123"
+               class="h-12 px-4 rounded-lg bg-surface-card border border-border-subtle font-body-md focus:outline-none focus:border-accent-muted-blue transition-colors">
+      </div>
+
+      <div class="flex flex-col gap-2">
+        <label for="description_raw" class="font-label-md text-label-md text-on-surface-variant">Job Description</label>
+        <textarea id="description_raw" name="description_raw" rows="8" required maxlength="20000"
+                  placeholder="Paste the full job description here for better tailoring..."
+                  class="p-4 rounded-lg bg-surface-card border border-border-subtle font-body-md resize-none focus:outline-none focus:border-accent-muted-blue transition-colors"></textarea>
+      </div>
+    </div>
+
+    <div class="flex flex-col md:flex-row gap-4 pt-4">
+      <button type="submit"
+              class="flex-1 h-14 bg-accent-muted-blue text-on-primary rounded-lg font-body-md font-medium hover:bg-primary transition-colors shadow-md">
+        Save Job
+      </button>
+      <a href="/jobs"
+         class="px-10 h-14 bg-surface-card border border-border-subtle text-on-surface-variant rounded-lg font-body-md hover:bg-surface-container-low transition-colors flex items-center justify-center">
+        Cancel
+      </a>
+    </div>
+  </form>
+</main>
+{% endblock %}

@@ -22,7 +22,7 @@
       {% if user %}
       <nav class="hidden md:flex items-center gap-8">
         <a href="/dashboard" class="font-body-md text-body-md text-on-surface-variant hover:text-primary transition-colors">Dashboard</a>
-        <a href="/sessions/new" class="font-body-md text-body-md text-on-surface-variant hover:text-primary transition-colors">New Session</a>
+        <a href="/jobs" class="font-body-md text-body-md text-on-surface-variant hover:text-primary transition-colors">Jobs</a>
         <form method="post" action="/api/v1/auth/logout" class="inline">
           <button type="submit" class="font-body-md text-body-md text-on-surface-variant hover:text-primary transition-colors">Log out</button>
         </form>
@@ -33,6 +33,7 @@
   {% endblock %}
 
   <main class="flex-grow w-full">
+    <div id="alert-region"></div>
     {% block content %}{% endblock %}
   </main>
 

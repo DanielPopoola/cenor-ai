@@ -9,7 +9,7 @@
       <a href="/dashboard" class="font-headline-md text-headline-md font-semibold text-primary">Cerno</a>
       <nav class="hidden md:flex items-center gap-6">
         <a href="/dashboard" class="text-primary font-bold border-b-2 border-primary pb-1">Dashboard</a>
-        <a href="/sessions/new" class="text-secondary font-medium hover:text-primary transition-colors">New Session</a>
+        <a href="/jobs" class="text-secondary font-medium hover:text-primary transition-colors">Jobs</a>
       </nav>
     </div>
     {# Fixes mockup review: adds the missing avatar -> logout affordance
@@ -43,7 +43,7 @@
       <h1 class="font-display text-display mb-2">Welcome back{% if user.name %}, {{ user.name.split(" ")[0] }}{% endif %}.</h1>
       <p class="font-body-lg text-body-lg text-text-secondary italic">Every session helps reveal another part of how you think.</p>
     </div>
-    <a href="/sessions/new"
+    <a href="/jobs"
        class="h-12 px-8 bg-background border border-accent-muted-blue text-accent-muted-blue rounded-lg font-label-md text-label-md font-medium hover:bg-surface-container-low transition-all flex items-center">
       New Interview Session
     </a>

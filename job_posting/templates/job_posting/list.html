@@ -1,0 +1,50 @@
+{% extends "base.html" %}
+
+{% block title %}Cerno | Jobs{% endblock %}
+
+{% block content %}
+<div class="max-w-container-max mx-auto px-margin-mobile md:px-margin-desktop py-20">
+
+  <section class="flex flex-col md:flex-row justify-between items-end mb-16 gap-6">
+    <div class="max-w-2xl">
+      <h1 class="font-display text-display mb-2">Jobs</h1>
+      <p class="font-body-lg text-body-lg text-text-secondary italic">Save a role once, practice against it as many times as you want.</p>
+    </div>
+    <a href="/jobs/new"
+       class="h-12 px-8 bg-accent-muted-blue text-on-primary rounded-lg font-label-md text-label-md font-medium hover:bg-primary transition-all flex items-center gap-2">
+      <span class="material-symbols-outlined text-[20px]">add</span>
+      New Job
+    </a>
+  </section>
+
+  {% if jobs %}
+  <div class="space-y-4">
+    {% for job in jobs %}
+    <a href="/jobs/{{ job.job.id }}"
+       class="block p-6 bg-surface-card border border-border-subtle rounded-xl hover:border-accent-muted-blue/40 transition-colors">
+      <div class="flex flex-col md:flex-row md:items-center justify-between gap-4">
+        <div class="flex-1">
+          <div class="flex items-center gap-3 mb-2">
+            <h4 class="font-headline-md text-[20px] font-semibold">{{ job.job.title }}</h4>
+            {% if job.job.company %}
+            <span class="text-secondary">&bull;</span>
+            <span class="text-text-secondary font-medium">{{ job.job.company }}</span>
+            {% endif %}
+          </div>
+          <span class="font-label-md text-label-md text-text-secondary">
+            {{ job.session_count }} session{{ "s" if job.session_count != 1 else "" }}
+          </span>
+        </div>
+        <span class="material-symbols-outlined text-outline-variant">chevron_right</span>
+      </div>
+    </a>
+    {% endfor %}
+  </div>
+  {% else %}
+  <div class="p-12 text-center border border-dashed border-border-subtle rounded-xl">
+    <p class="text-text-secondary">No jobs saved yet — add one to start practicing.</p>
+  </div>
+  {% endif %}
+
+</div>
+{% endblock %}

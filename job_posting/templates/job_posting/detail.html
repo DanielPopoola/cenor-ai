@@ -1,0 +1,99 @@
+{% extends "base.html" %}
+
+{% block title %}Cerno | {{ job.title }}{% endblock %}
+
+{% block content %}
+<div class="max-w-container-max mx-auto px-margin-mobile md:px-margin-desktop py-20">
+
+  <a href="/jobs" class="inline-flex items-center gap-1 font-label-md text-label-md text-text-secondary hover:text-primary transition-colors mb-8">
+    <span class="material-symbols-outlined text-[18px]">arrow_back</span>
+    All Jobs
+  </a>
+
+  <section class="mb-16">
+    <h1 class="font-display text-headline-lg text-text-primary mb-2">{{ job.title }}</h1>
+    {% if job.company %}
+    <p class="font-body-lg text-body-lg text-text-secondary mb-4">{{ job.company }}</p>
+    {% endif %}
+    {% if job.url %}
+    <a href="{{ job.url }}" target="_blank" rel="noopener"
+       class="inline-flex items-center gap-1 font-label-md text-label-md text-accent-muted-blue hover:underline">
+      View posting
+      <span class="material-symbols-outlined text-[16px]">open_in_new</span>
+    </a>
+    {% endif %}
+  </section>
+
+  <!-- Start a new session against this job -->
+  <section class="mb-16 p-8 bg-surface-card border border-border-subtle rounded-xl shadow-sm">
+    <h2 class="font-headline-md text-headline-md text-text-primary mb-2">Start a new session</h2>
+    <p class="font-body-md text-body-md text-text-secondary mb-6">
+      Every session works through all four areas — algorithms, frameworks &amp; tools, specialized skills, and system design.
+    </p>
+    <form hx-post="/jobs/{{ job.id }}/sessions" hx-target="body" class="flex flex-col md:flex-row items-start md:items-center gap-6">
+      <div class="flex flex-col gap-2">
+        <label class="font-label-md text-label-md text-on-surface-variant">Length</label>
+        <div class="flex gap-3" role="radiogroup" aria-label="Interview length in minutes">
+          {% for option in length_options %}
+          <label class="cursor-pointer">
+            <input type="radio" name="duration_limit_minutes" value="{{ option }}"
+                   {% if option == default_length %}checked{% endif %}
+                   class="peer sr-only">
+            <span class="block px-5 py-2 rounded-full border border-border-subtle font-label-md text-label-md
+                         peer-checked:border-primary peer-checked:bg-primary/5 peer-checked:text-primary
+                         hover:border-primary transition-colors duration-200">
+              {{ option }}m
+            </span>
+          </label>
+          {% endfor %}
+        </div>
+      </div>
+      <button type="submit"
+              class="h-12 px-8 bg-accent-muted-blue text-on-primary rounded-lg font-label-md text-label-md font-medium hover:bg-primary transition-colors shadow-md md:self-end">
+        Start Interview
+      </button>
+    </form>
+  </section>
+
+  <!-- Sessions for this job -->
+  <section>
+    <h2 class="font-headline-lg text-headline-lg mb-8">Sessions for this job</h2>
+    {% if sessions %}
+    <div class="space-y-4">
+      {% for s in sessions %}
+      <div class="p-6 bg-surface-card border border-border-subtle rounded-xl flex flex-col md:flex-row md:items-center justify-between gap-4">
+        <div class="flex-1">
+          <div class="flex flex-wrap gap-4 text-text-secondary text-label-md">
+            <span class="flex items-center gap-1">
+              <span class="material-symbols-outlined text-[18px]">{{ "code" if s.lens_type == "coding" else "forum" }}</span>
+              {{ s.lens_type|title }}
+            </span>
+            <span class="flex items-center gap-1">
+              <span class="material-symbols-outlined text-[18px]">calendar_today</span>
+              {{ s.started_at_display }}
+            </span>
+          </div>
+        </div>
+        <div class="flex items-center gap-6">
+          {% if s.status == "completed" %}
+            <span class="px-3 py-1 bg-[#F0EEEB] rounded-full text-label-md text-secondary font-medium">Completed</span>
+            <a href="/sessions/{{ s.id }}/feedback" class="text-accent-muted-blue font-medium hover:underline">View Feedback</a>
+          {% elif s.status == "in_progress" %}
+            <span class="px-3 py-1 bg-primary/10 rounded-full text-label-md text-primary font-medium">In Progress</span>
+            <a href="/sessions/{{ s.id }}" class="text-accent-muted-blue font-medium hover:underline">Continue</a>
+          {% else %}
+            <span class="px-3 py-1 bg-surface-container rounded-full text-label-md text-secondary font-medium">Abandoned</span>
+          {% endif %}
+        </div>
+      </div>
+      {% endfor %}
+    </div>
+    {% else %}
+    <div class="p-12 text-center border border-dashed border-border-subtle rounded-xl">
+      <p class="text-text-secondary">No sessions yet for this job — start one above.</p>
+    </div>
+    {% endif %}
+  </section>
+
+</div>
+{% endblock %}

@@ -76,7 +76,7 @@ def test_auth_page_omits_authenticated_nav_for_anonymous_visitor(client: TestCli
     response = client.get("/auth")
 
     assert "Dashboard" not in response.text
-    assert "New Session" not in response.text
+    assert ">Jobs<" not in response.text
 
 
 def test_auth_page_links_to_google_oauth(client: TestClient):
