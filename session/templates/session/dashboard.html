@@ -24,7 +24,7 @@
       <div id="user-menu" class="hidden absolute right-0 mt-2 w-48 bg-surface-card border border-border-subtle rounded-lg shadow-ambient py-2 z-50">
         <p class="px-4 py-2 font-label-md text-label-md text-text-secondary truncate">{{ user.email }}</p>
         <div class="h-px bg-border-subtle my-1"></div>
-        <form method="post" action="/api/v1/auth/logout">
+        <form hx-post="/api/v1/auth/logout" hx-target="body">
           <button type="submit" class="w-full text-left px-4 py-2 font-label-md text-label-md text-text-primary hover:bg-surface-container-low transition-colors">
             Log out
           </button>

@@ -87,6 +87,7 @@ def logout(
     response: Response, settings: Settings = Depends(get_settings_dep)
 ) -> APIResponse[dict]:
     response.delete_cookie(key=settings.cookie_name)
+    response.headers["HX-Redirect"] = "/"
     return APIResponse.ok({"logged_out": True})
 
 

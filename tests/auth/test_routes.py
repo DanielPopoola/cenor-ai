@@ -69,6 +69,13 @@ def test_logout_clears_session(client):
     assert me_after.status_code == 401
 
 
+def test_logout_sets_hx_redirect_to_landing_page(client):
+    _login(client)
+
+    logout_resp = client.post("/api/v1/auth/logout")
+    assert logout_resp.headers["hx-redirect"] == "/"
+
+
 def test_callback_with_invalid_state_returns_422_envelope(client):
     r = client.get("/api/v1/auth/google/callback?code=x&state=never-issued")
     assert r.status_code == 422

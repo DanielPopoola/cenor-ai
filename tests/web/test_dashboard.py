@@ -121,7 +121,7 @@ def test_dashboard_empty_state(client: TestClient):
 def test_dashboard_has_avatar_logout_affordance(client: TestClient):
     _login(client)
     r = client.get("/dashboard")
-    assert 'action="/api/v1/auth/logout"' in r.text
+    assert 'hx-post="/api/v1/auth/logout"' in r.text
 
 
 def test_dashboard_lists_in_progress_session_as_resume_card(client: TestClient, app):
