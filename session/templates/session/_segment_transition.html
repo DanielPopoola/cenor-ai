@@ -1,0 +1,8 @@
+<div id="turn-region" hx-post="/sessions/{{ session.id }}/next-question"
+     hx-trigger="load delay:1500ms" hx-target="#interview-main" hx-swap="innerHTML">
+  <section class="bg-surface-card border border-border-subtle p-12 rounded-xl shadow-sm text-center">
+    <span class="material-symbols-outlined text-primary text-4xl mb-4 block animate-pulse">arrow_forward</span>
+    <h2 class="font-headline-md text-headline-md text-text-primary mb-2">Moving to the next section</h2>
+    <p class="font-body-md text-body-md text-text-secondary">{{ next_area|area_label }}</p>
+  </section>
+</div>

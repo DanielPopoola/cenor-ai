@@ -1,0 +1,46 @@
+<div id="turn-region"{% if oob %} hx-swap-oob="true"{% endif %}>
+
+  <section class="bg-surface-card border border-border-subtle p-8 rounded-xl shadow-sm mb-8">
+    <span class="font-label-md text-label-md text-accent-muted-blue tracking-widest uppercase mb-4 block opacity-70">Current Question</span>
+    <h2 class="font-headline-md text-headline-md text-text-primary leading-relaxed">{{ question }}</h2>
+  </section>
+
+  <form hx-post="/sessions/{{ session.id }}/turns" hx-target="#interview-main" hx-swap="innerHTML">
+    {% if segment.editor_available %}
+    <div class="grid md:grid-cols-2 gap-8 mb-8">
+      <div class="flex flex-col bg-surface-card border border-border-subtle rounded-xl overflow-hidden shadow-sm">
+        <div class="h-12 border-b border-border-subtle flex items-center px-6 bg-surface-main/30">
+          <span class="font-label-md text-label-md text-text-secondary">Code</span>
+        </div>
+        <textarea name="code_snapshot" rows="16"
+                  placeholder="// Write your solution here..."
+                  class="flex-1 p-6 bg-transparent border-none focus:outline-none font-code text-code text-text-primary resize-none"></textarea>
+      </div>
+      <div class="flex flex-col bg-surface-card border border-border-subtle rounded-xl overflow-hidden shadow-sm">
+        <div class="h-12 border-b border-border-subtle flex items-center px-6 bg-surface-main/30">
+          <span class="font-label-md text-label-md text-text-secondary">Your Reasoning</span>
+        </div>
+        <p class="px-6 pt-4 font-label-md text-[12px] text-text-secondary italic">
+          Compared against your implementation afterward — this is the one behavior the interviewer doesn't watch for live.
+        </p>
+        <textarea name="content" rows="12" required
+                  placeholder="Explain your approach, complexity, and any trade-offs..."
+                  class="flex-1 p-6 bg-transparent border-none focus:outline-none font-body-md text-text-primary resize-none"></textarea>
+      </div>
+    </div>
+    {% else %}
+    <div class="bg-surface-card border border-border-subtle rounded-xl p-10 mb-8 shadow-sm">
+      <textarea name="content" rows="10" required
+                placeholder="Take a moment to collect your thoughts before typing..."
+                class="w-full bg-transparent border-none focus:outline-none font-body-lg text-body-lg leading-relaxed text-text-primary resize-none"></textarea>
+    </div>
+    {% endif %}
+
+    <div class="flex justify-end">
+      <button type="submit"
+              class="bg-primary text-on-primary px-6 py-2.5 rounded-lg font-label-md hover:bg-accent-muted-blue transition-colors duration-200 shadow-sm active:opacity-70">
+        Submit Response
+      </button>
+    </div>
+  </form>
+</div>

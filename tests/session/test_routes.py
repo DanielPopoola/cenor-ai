@@ -292,7 +292,40 @@ def test_end_session_triggers_observer_background_task_exactly_once(client, app)
     assert called_session_id == session_id
 
 
-def test_get_session_returns_owned_session(client, app):
+def test_submit_turn_triggers_observer_when_last_segment_completes_naturally(client, app):
+    """Regression test: a session that completes because the candidate
+    finished the last segment (no explicit POST /end call) must still
+    schedule the Observer background task. Before this fix,
+    _complete_segment_and_stop marked the session completed directly
+    via the repository, bypassing end_session()'s scheduling entirely
+    — a candidate who simply finished would poll /feedback forever."""
+    _login(client)
+    job_id = _setup_complete_profile_and_job(client, app)
+
+    responses = [_in_progress("open 0")]
+    for i in range(4):
+        responses.append(_fully_demonstrated())
+        if i < 3:
+            responses.append(_in_progress(f"open {i + 1}"))
+    app.state.ai_service = FakeAIService(responses)
+
+    create_resp = client.post("/api/v1/sessions", json={"job_posting_id": job_id})
+    session_id = create_resp.json()["data"]["session"]["id"]
+
+    with patch("session.routes.run_observation_task") as mock_task:
+        result = client.post(f"/api/v1/sessions/{session_id}/turns", json={"content": "answer 0"})
+        for _ in range(3):
+            assert result.json()["data"]["outcome"] == "segment_transitioned"
+            client.post(f"/api/v1/sessions/{session_id}/next-question")
+            result = client.post(f"/api/v1/sessions/{session_id}/turns", json={"content": "next answer"})
+
+        assert result.json()["data"]["outcome"] == "session_completed"
+
+    assert mock_task.call_count == 1
+    assert mock_task.call_args[0][0] == session_id
+
+
+
     _login(client)
     job_id = _setup_complete_profile_and_job(client, app)
     app.state.ai_service = FakeAIService([_in_progress("opening")])

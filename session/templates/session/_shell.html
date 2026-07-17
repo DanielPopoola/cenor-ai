@@ -1,0 +1,79 @@
+{% extends "base.html" %}
+
+{% block title %}Cerno | {{ job.title }}{% endblock %}
+
+{% block nav %}
+<nav class="bg-surface-main border-b border-border-subtle flex justify-between items-center w-full px-margin-mobile md:px-margin-desktop h-20 sticky top-0 z-50">
+  <div class="flex items-center gap-8">
+    <span class="font-headline-md text-headline-md font-bold text-primary">Cerno</span>
+    <div class="h-6 w-px bg-border-subtle hidden md:block"></div>
+    <div class="hidden md:flex flex-col">
+      <span class="font-label-md text-label-md text-text-primary uppercase tracking-wider">{{ job.title }}</span>
+      <span class="font-label-md text-label-md text-text-secondary">
+        {% if job.company %}{{ job.company }} &bull; {% endif %}{{ segment.area|area_label }}
+      </span>
+    </div>
+  </div>
+  <div class="flex items-center gap-6 md:gap-12">
+    <div id="segment-timer-region" class="flex items-center gap-3 font-code text-code text-text-secondary bg-surface-container-low px-4 py-2 rounded-lg"
+         data-segment-started-at="{{ segment.started_at.isoformat() if segment.started_at else '' }}"
+         data-segment-duration-seconds="{{ segment.duration_limit_minutes * 60 }}">
+      <span class="material-symbols-outlined text-sm">timer</span>
+      <span class="tabular-nums" id="timer-display">--:--</span>
+    </div>
+    <form hx-post="/sessions/{{ session.id }}/end" hx-target="body" hx-confirm="End this session now? This can't be undone.">
+      <button type="submit" class="text-secondary font-label-md hover:text-primary transition-colors duration-200 cursor-pointer">
+        End Session
+      </button>
+    </form>
+  </div>
+</nav>
+{% endblock %}
+
+{% block content %}
+<div id="segment-progress" class="max-w-container-max mx-auto px-margin-mobile md:px-margin-desktop pt-6">
+  <div class="flex items-center gap-2">
+    {% for area in ["programming_algorithms", "frameworks_tools", "specialized", "system_design"] %}
+    <div class="h-1.5 flex-1 rounded-full {{ 'bg-primary' if segment_order_index >= loop.index0 else 'bg-surface-container-high' }}"></div>
+    {% endfor %}
+  </div>
+  <p class="font-label-md text-label-md text-text-secondary mt-2">
+    Section {{ segment_order_index + 1 }} of 4 &mdash; {{ segment.area|area_label }}
+  </p>
+</div>
+
+<div id="interview-main" class="max-w-container-max mx-auto w-full px-margin-mobile md:px-margin-desktop py-8">
+  {% include "session/_turn.html" %}
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+  (function () {
+    function startSegmentTimer() {
+      const region = document.getElementById("segment-timer-region");
+      if (!region) return;
+      const startedAtRaw = region.dataset.segmentStartedAt;
+      const durationSeconds = parseInt(region.dataset.segmentDurationSeconds, 10);
+      if (!startedAtRaw) return;
+
+      const startedAt = new Date(startedAtRaw).getTime();
+      const display = document.getElementById("timer-display");
+
+      function tick() {
+        const elapsedSeconds = Math.floor((Date.now() - startedAt) / 1000);
+        const remaining = Math.max(0, durationSeconds - elapsedSeconds);
+        const minutes = Math.floor(remaining / 60);
+        const seconds = remaining % 60;
+        display.textContent = `${minutes}:${seconds.toString().padStart(2, "0")}`;
+      }
+      tick();
+      if (window.__cernoTimerInterval) clearInterval(window.__cernoTimerInterval);
+      window.__cernoTimerInterval = setInterval(tick, 1000);
+    }
+
+    document.body.addEventListener("htmx:afterSettle", startSegmentTimer);
+    startSegmentTimer();
+  })();
+</script>
+{% endblock %}

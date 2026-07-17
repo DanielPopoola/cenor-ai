@@ -27,6 +27,11 @@ class TurnResult:
     segment: Segment
     outcome: str  # "continue" | "segment_transitioned" | "session_completed"
     next_question: str | None
+    just_completed: bool = False
+    """True only when this call is what caused status to become
+    "completed" — lets the route layer schedule the Observer background
+    task exactly once, the same way POST /end already does, without
+    SessionService itself knowing about BackgroundTasks/app state."""
 
 
 @dataclass(frozen=True)
@@ -316,6 +321,7 @@ class SessionService:
                 segment=completed_segment,
                 outcome="session_completed",
                 next_question=None,
+                just_completed=True,
             )
 
         next_segment = self._repository.update_segment(

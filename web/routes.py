@@ -113,6 +113,53 @@ def dashboard_page(
     )
 
 
+@router.get("/sessions/{session_id}")
+def session_interview_page(
+    session_id: str,
+    request: Request,
+    user: User = Depends(get_current_user),
+    db: DBSession = Depends(_get_db),
+):
+    session_repository = SessionRepository(db)
+    job_posting_repository = JobPostingRepository(db)
+
+    session_service = SessionService(
+        settings=request.app.state.settings,
+        repository=session_repository,
+        candidate_profile_repository=CandidateProfileRepository(db),
+        job_posting_repository=job_posting_repository,
+        ai_service=request.app.state.ai_service,
+    )
+    session = session_service.get_session(user.id, session_id)
+
+    if session.status != "in_progress":
+        return RedirectResponse(url=f"/sessions/{session_id}/feedback", status_code=302)
+
+    job = job_posting_repository.find_by_id(user.id, session.job_posting_id)
+    segments = session_repository.list_segments_for_session(session_id)
+    current_segment = next(s for s in segments if s.status == "in_progress")
+    segment_order_index = current_segment.segment_order
+
+    turns = session_repository.list_turns_for_segment(current_segment.id)
+    last_interviewer_turn = next(
+        (t for t in reversed(turns) if t.speaker == "interviewer"), None
+    )
+    question = last_interviewer_turn.content if last_interviewer_turn else ""
+
+    return templates.TemplateResponse(
+        request,
+        "session/_shell.html",
+        {
+            "user": user,
+            "session": session,
+            "job": job,
+            "segment": current_segment,
+            "segment_order_index": segment_order_index,
+            "question": question,
+        },
+    )
+
+
 @dataclass(frozen=True)
 class JobListItemView:
     job: object

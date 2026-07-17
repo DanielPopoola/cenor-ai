@@ -376,6 +376,7 @@ async def test_submit_turn_completes_session_after_last_segment(settings):
     assert result.session.status == "completed"
     assert result.session.ended_at is not None
     assert result.next_question is None
+    assert result.just_completed is True
 
 
 # --- submit_turn: time-driven completion (deterministic override) -------
