@@ -28,6 +28,7 @@ class Settings(BaseSettings):
     llm_base_url: str = "https://api.openai.com/v1"
     llm_model: str = "gpt-4o-mini"
     llm_request_timeout_seconds: int = 30
+    llm_max_completion_tokens: int | None = 4096
 
     observer_prompt_variant: Literal["zero_shot", "few_shot"] = "zero_shot"
 

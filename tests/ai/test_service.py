@@ -110,7 +110,194 @@ async def test_run_interviewer_turn_passes_system_and_user_messages(settings):
     assert "lenient" in messages[1]["content"]
 
 
-# --- run_observer -----------------------------------------------------
+# --- structure_cv -------------------------------------------------------
+
+
+def _mock_cv_completion(parsed):
+    completion = MagicMock()
+    message = MagicMock()
+    message.parsed = parsed
+    completion.choices = [MagicMock(message=message)]
+    return completion
+
+
+async def test_structure_cv_returns_parsed_response(settings):
+    from candidate_profile.domain import CVStructured, Skill, WorkExperience
+
+    service = OpenAICompatibleService(settings)
+    expected = CVStructured(
+        is_valid=True,
+        name="Ada Lovelace",
+        work_experience=[WorkExperience(company="Acme", title="Engineer", start_date="2020")],
+        skills=[Skill(name="Python")],
+    )
+
+    with patch.object(
+        service._client.chat.completions,
+        "parse",
+        new=AsyncMock(return_value=_mock_cv_completion(expected)),
+    ) as mock_parse:
+        result = await service.structure_cv("Ada Lovelace, Software Engineer at Acme")
+
+    assert result.name == "Ada Lovelace"
+    assert result.work_experience[0].company == "Acme"
+    _, kwargs = mock_parse.call_args
+    assert kwargs["response_format"] is CVStructured
+
+
+async def test_structure_cv_raises_when_response_fails_to_parse(settings):
+    service = OpenAICompatibleService(settings)
+
+    with patch.object(
+        service._client.chat.completions,
+        "parse",
+        new=AsyncMock(return_value=_mock_cv_completion(None)),
+    ):
+        with pytest.raises(ValueError):
+            await service.structure_cv("some text")
+
+
+async def test_structure_cv_passes_raw_text_in_user_message(settings):
+    from candidate_profile.domain import CVStructured
+
+    service = OpenAICompatibleService(settings)
+
+    with patch.object(
+        service._client.chat.completions,
+        "parse",
+        new=AsyncMock(return_value=_mock_cv_completion(CVStructured(is_valid=True))),
+    ) as mock_parse:
+        await service.structure_cv("Ada Lovelace, mathematician")
+
+    _, kwargs = mock_parse.call_args
+    messages = kwargs["messages"]
+    assert messages[0]["role"] == "system"
+    assert "not evaluation" in messages[0]["content"]
+    assert messages[1]["role"] == "user"
+    assert "Ada Lovelace, mathematician" in messages[1]["content"]
+
+
+# --- max_completion_tokens ------------------------------------------------
+
+
+async def test_default_settings_apply_a_nonzero_max_completion_tokens():
+    """Regression test: an unset completion ceiling let a real provider
+    (Groq) silently truncate structured JSON mid-generation for a
+    detailed multi-job CV — the response was simply invalid JSON, no
+    retryable error. 4096 is the app's own safety net regardless of
+    what the provider's own default would have been."""
+    settings = Settings(env="test", llm_api_key="fake-key")
+    assert settings.llm_max_completion_tokens == 4096
+
+
+async def test_max_completion_tokens_is_passed_to_every_completion_call(settings):
+    from candidate_profile.domain import CVStructured
+
+    service = OpenAICompatibleService(settings)
+    assert service._completion_kwargs == {"max_completion_tokens": 4096}
+
+    with patch.object(
+        service._client.chat.completions,
+        "parse",
+        new=AsyncMock(return_value=_mock_cv_completion(CVStructured(is_valid=True))),
+    ) as mock_parse:
+        await service.structure_cv("some cv text")
+
+    _, kwargs = mock_parse.call_args
+    assert kwargs["max_completion_tokens"] == 4096
+
+
+async def test_max_completion_tokens_omitted_entirely_when_settings_value_is_none():
+    """None means 'defer to the provider's own default' — must be
+    fully absent from the call, not sent as an explicit null, since
+    some providers reject an explicit null for this parameter."""
+    from candidate_profile.domain import CVStructured
+
+    settings = Settings(env="test", llm_api_key="fake-key", llm_max_completion_tokens=None)
+    service = OpenAICompatibleService(settings)
+    assert service._completion_kwargs == {}
+
+    with patch.object(
+        service._client.chat.completions,
+        "parse",
+        new=AsyncMock(return_value=_mock_cv_completion(CVStructured(is_valid=True))),
+    ) as mock_parse:
+        await service.structure_cv("some cv text")
+
+    _, kwargs = mock_parse.call_args
+    assert "max_completion_tokens" not in kwargs
+
+
+# --- structure_github ----------------------------------------------------
+
+
+def _mock_github_completion(parsed):
+    completion = MagicMock()
+    message = MagicMock()
+    message.parsed = parsed
+    completion.choices = [MagicMock(message=message)]
+    return completion
+
+
+async def test_structure_github_returns_parsed_response(settings):
+    from candidate_profile.domain import GitHubStructured, NotableRepo
+
+    service = OpenAICompatibleService(settings)
+    expected = GitHubStructured(
+        is_valid=True,
+        bio="Builds things",
+        notable_repos=[NotableRepo(name="cerno-ai", primary_language="Python")],
+    )
+
+    with patch.object(
+        service._client.chat.completions,
+        "parse",
+        new=AsyncMock(return_value=_mock_github_completion(expected)),
+    ) as mock_parse:
+        result = await service.structure_github(
+            {"profile": {"bio": "Builds things"}, "repos": [{"name": "cerno-ai"}]}
+        )
+
+    assert result.bio == "Builds things"
+    assert result.notable_repos[0].name == "cerno-ai"
+    _, kwargs = mock_parse.call_args
+    assert kwargs["response_format"] is GitHubStructured
+
+
+async def test_structure_github_raises_when_response_fails_to_parse(settings):
+    service = OpenAICompatibleService(settings)
+
+    with patch.object(
+        service._client.chat.completions,
+        "parse",
+        new=AsyncMock(return_value=_mock_github_completion(None)),
+    ):
+        with pytest.raises(ValueError):
+            await service.structure_github({"profile": {}, "repos": []})
+
+
+async def test_structure_github_passes_raw_profile_data_in_user_message(settings):
+    from candidate_profile.domain import GitHubStructured
+
+    service = OpenAICompatibleService(settings)
+
+    with patch.object(
+        service._client.chat.completions,
+        "parse",
+        new=AsyncMock(return_value=_mock_github_completion(GitHubStructured(is_valid=True))),
+    ) as mock_parse:
+        await service.structure_github(
+            {"profile": {"login": "adalovelace"}, "repos": [{"name": "analytical-engine"}]}
+        )
+
+    _, kwargs = mock_parse.call_args
+    messages = kwargs["messages"]
+    assert messages[0]["role"] == "system"
+    assert "notable_repos" in messages[0]["content"]
+    assert messages[1]["role"] == "user"
+    assert "adalovelace" in messages[1]["content"]
+    assert "analytical-engine" in messages[1]["content"]
+
 
 
 def _mock_observer_completion(entries):

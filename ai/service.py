@@ -1,8 +1,16 @@
 from openai import AsyncOpenAI
 
+from ai.prompts.cv_structurer import SYSTEM_PROMPT as CV_STRUCTURER_SYSTEM_PROMPT
+from ai.prompts.cv_structurer import build_user_message as build_cv_user_message
 from ai.prompts.feedback_synthesizer import SYSTEM_PROMPT as FEEDBACK_SYSTEM_PROMPT
 from ai.prompts.feedback_synthesizer import (
     build_user_message as build_feedback_user_message,
+)
+from ai.prompts.github_structurer import (
+    SYSTEM_PROMPT as GITHUB_STRUCTURER_SYSTEM_PROMPT,
+)
+from ai.prompts.github_structurer import (
+    build_user_message as build_github_user_message,
 )
 from ai.prompts.interviewer import SYSTEM_PROMPT, build_user_message
 from ai.prompts.observer import (
@@ -11,6 +19,7 @@ from ai.prompts.observer import (
     build_system_prompt as build_observer_system_prompt,
     build_user_message as build_observer_user_message,
 )
+from candidate_profile.domain import CVStructured, GitHubStructured
 from common.retry import retry_transient
 from config import Settings
 from feedback.domain import FeedbackResult
@@ -26,14 +35,51 @@ class OpenAICompatibleService:
             timeout=settings.llm_request_timeout_seconds,
         )
         self._model = settings.llm_model
+        self._completion_kwargs = (
+            {"max_completion_tokens": settings.llm_max_completion_tokens}
+            if settings.llm_max_completion_tokens is not None
+            else {}
+        )
 
     @retry_transient(max_attempts=3, exceptions=(TimeoutError, ConnectionError))
-    async def structure_cv(self, raw_text: str):
-        raise NotImplementedError("CVStructurer prompt lands in Epic 2")
+    async def structure_cv(self, raw_text: str) -> CVStructured:
+        user_message = build_cv_user_message(raw_text)
+
+        completion = await self._client.chat.completions.parse(
+            model=self._model,
+            messages=[
+                {"role": "system", "content": CV_STRUCTURER_SYSTEM_PROMPT},
+                {"role": "user", "content": user_message},
+            ],
+            response_format=CVStructured,
+            **self._completion_kwargs,
+        )
+        parsed = completion.choices[0].message.parsed
+        if parsed is None:
+            raise ValueError(
+                "CV structuring response did not match the expected schema"
+            )
+        return parsed
 
     @retry_transient(max_attempts=2, exceptions=(TimeoutError, ConnectionError))
-    async def structure_github(self, raw_profile_data: dict):
-        raise NotImplementedError("GitHubStructurer prompt lands in Epic 2")
+    async def structure_github(self, raw_profile_data: dict) -> GitHubStructured:
+        user_message = build_github_user_message(raw_profile_data)
+
+        completion = await self._client.chat.completions.parse(
+            model=self._model,
+            messages=[
+                {"role": "system", "content": GITHUB_STRUCTURER_SYSTEM_PROMPT},
+                {"role": "user", "content": user_message},
+            ],
+            response_format=GitHubStructured,
+            **self._completion_kwargs,
+        )
+        parsed = completion.choices[0].message.parsed
+        if parsed is None:
+            raise ValueError(
+                "GitHub structuring response did not match the expected schema"
+            )
+        return parsed
 
     @retry_transient(max_attempts=2, exceptions=(TimeoutError, ConnectionError))
     async def run_interviewer_turn(
@@ -65,6 +111,7 @@ class OpenAICompatibleService:
                 {"role": "user", "content": user_message},
             ],
             response_format=InterviewerTurnResponse,
+            **self._completion_kwargs,
         )
         parsed = completion.choices[0].message.parsed
         if parsed is None:
@@ -90,6 +137,7 @@ class OpenAICompatibleService:
                 {"role": "user", "content": user_message},
             ],
             response_format=ObserverResponse,
+            **self._completion_kwargs,
         )
         parsed = completion.choices[0].message.parsed
         if parsed is None:
@@ -117,6 +165,7 @@ class OpenAICompatibleService:
                 {"role": "user", "content": user_message},
             ],
             response_format=FeedbackResult,
+            **self._completion_kwargs,
         )
         parsed = completion.choices[0].message.parsed
         if parsed is None:
