@@ -146,3 +146,24 @@
 ::-webkit-scrollbar-thumb:hover {
   background: #d1cfcc;
 }
+
+/* CodeMirror 6 (session/_turn.html) — scoped overrides so the editor
+   sits naturally inside its card wrapper rather than CodeMirror's own
+   default white background/padding/font, matching the deliberately
+   plain (no editor theme) design call for the coding segment. */
+.cm-editor {
+  height: 100%;
+  background: transparent;
+  font-family: inherit;
+  font-size: inherit;
+}
+.cm-editor.cm-focused {
+  outline: none;
+}
+.cm-scroller {
+  font-family: inherit;
+}
+.cm-gutters {
+  background: transparent;
+  border-right: 1px solid #E5E3E0;
+}

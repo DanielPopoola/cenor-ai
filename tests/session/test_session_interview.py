@@ -151,6 +151,50 @@ def test_interview_page_renders_current_question_and_editor_for_coding_segment(c
     assert "Programming" in r.text
 
 
+def test_interview_page_code_snapshot_field_is_hidden_not_a_visible_textarea(client, app):
+    """Ticket 7: the raw textarea placeholder was replaced by a
+    CodeMirror mount point + hidden input that JS syncs on submit —
+    the candidate should never see or type directly into a
+    name="code_snapshot" element."""
+    _login(client)
+    job_id = _setup_complete_profile_and_job(client, app)
+    app.state.ai_service = FakeAIService([_in_progress("Implement an LRU cache")])
+    session_id = _start_session(client, job_id)
+
+    r = client.get(f"/sessions/{session_id}")
+    assert '<input type="hidden" name="code_snapshot"' in r.text
+    assert '<textarea name="code_snapshot"' not in r.text
+
+
+def test_interview_page_renders_codemirror_mount_point_and_script(client, app):
+    _login(client)
+    job_id = _setup_complete_profile_and_job(client, app)
+    app.state.ai_service = FakeAIService([_in_progress("Implement an LRU cache")])
+    session_id = _start_session(client, job_id)
+
+    r = client.get(f"/sessions/{session_id}")
+    assert 'id="code-editor-mount"' in r.text
+    assert '<script type="module">' in r.text
+    assert "esm.sh/codemirror@6.0.2" in r.text
+
+
+def test_interview_page_omits_codemirror_script_for_conversational_segment(client, app):
+    """No editor pane on a conversational segment means no reason to
+    load CodeMirror at all for that request."""
+    _login(client)
+    job_id = _setup_complete_profile_and_job(client, app)
+    app.state.ai_service = FakeAIService([_in_progress("q0"), _fully_demonstrated()])
+    session_id = _start_session(client, job_id)
+    client.post(f"/api/v1/sessions/{session_id}/turns", json={"content": "answer"})
+
+    app.state.ai_service = FakeAIService([_in_progress("q1")])
+    client.post(f"/api/v1/sessions/{session_id}/next-question")
+
+    r = client.get(f"/sessions/{session_id}")
+    assert "esm.sh/codemirror" not in r.text
+    assert 'id="code-editor-mount"' not in r.text
+
+
 def test_interview_page_omits_editor_for_conversational_segment(client, app):
     """After the first segment transitions, frameworks_tools has no
     editor — the shell must not show a code pane there."""
